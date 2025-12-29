@@ -1,0 +1,5 @@
+{
+  "name": "Личный кабинет Outlivion",
+  "description": "Минималистичный портал управления подписками для my.outlivion.space с авторизацией через Telegram, статусом подписки и инструкциями.",
+  "requestFramePermissions": []
+}
