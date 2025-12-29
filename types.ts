@@ -34,3 +34,8 @@ export interface Plan {
   description: string;
   savings?: string;
 }
+
+export interface VpnKey {
+  value: string;
+  isVisible: boolean;
+}

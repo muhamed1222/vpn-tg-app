@@ -2,30 +2,68 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../App';
 import { CheckCircle2, XCircle, Loader2, ArrowRight } from 'lucide-react';
+import { apiService } from '../services/apiService';
 
 export const Result: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { refreshSubscription } = useAuth();
+  const navigate = useNavigate();
   const status = searchParams.get('status');
-  const [internalStatus, setInternalStatus] = useState(status || 'pending');
+  const orderId = searchParams.get('order_id');
+  const [internalStatus, setInternalStatus] = useState<'pending' | 'success' | 'fail'>(status === 'success' ? 'success' : status === 'fail' ? 'fail' : 'pending');
   const [attempts, setAttempts] = useState(0);
+  const [checking, setChecking] = useState(false);
 
+  // Проверка статуса оплаты
   useEffect(() => {
-    if (internalStatus === 'pending') {
-      const timer = setInterval(() => {
-        setAttempts(prev => {
-          if (prev >= 10) { // Имитация завершения проверки
-            clearInterval(timer);
+    if (internalStatus === 'pending' && orderId) {
+      const checkPaymentStatus = async () => {
+        setChecking(true);
+        try {
+          const result = await apiService.checkPaymentStatus(orderId);
+          
+          if (result.status === 'completed') {
             setInternalStatus('success');
-            refreshSubscription();
-            return prev;
+            await refreshSubscription();
+          } else if (result.status === 'pending') {
+            // Продолжаем проверку
+            setAttempts(prev => prev + 1);
+            
+            // Если слишком много попыток - показываем ошибку
+            if (attempts >= 20) {
+              setInternalStatus('fail');
+            }
           }
-          return prev + 1;
-        });
-      }, 2000);
+        } catch (error) {
+          console.error('Ошибка при проверке статуса оплаты:', error);
+          // При ошибке продолжаем проверку
+          setAttempts(prev => prev + 1);
+          if (attempts >= 20) {
+            setInternalStatus('fail');
+          }
+        } finally {
+          setChecking(false);
+        }
+      };
+
+      // Первая проверка сразу
+      checkPaymentStatus();
+
+      // Затем проверяем каждые 3 секунды
+      const timer = setInterval(() => {
+        if (internalStatus === 'pending' && attempts < 20) {
+          checkPaymentStatus();
+        } else {
+          clearInterval(timer);
+        }
+      }, 3000);
+
       return () => clearInterval(timer);
+    } else if (internalStatus === 'pending' && !orderId) {
+      // Если нет order_id, но статус pending - это ошибка
+      setInternalStatus('fail');
     }
-  }, [internalStatus]);
+  }, [internalStatus, orderId, attempts, refreshSubscription]);
 
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center py-12 px-6">
@@ -66,10 +104,26 @@ export const Result: React.FC = () => {
             </div>
             <div className="flex flex-col gap-3">
                <button 
-                 onClick={() => window.location.reload()}
-                 className="btn-secondary w-full py-3.5 text-[13px]"
+                 onClick={async () => {
+                   if (orderId) {
+                     setChecking(true);
+                     try {
+                       const result = await apiService.checkPaymentStatus(orderId);
+                       if (result.status === 'completed') {
+                         setInternalStatus('success');
+                         await refreshSubscription();
+                       }
+                     } catch (error) {
+                       console.error('Ошибка при проверке:', error);
+                     } finally {
+                       setChecking(false);
+                     }
+                   }
+                 }}
+                 disabled={checking || !orderId}
+                 className="btn-secondary w-full py-3.5 text-[13px] disabled:opacity-50"
                 >
-                 Проверить снова
+                 {checking ? 'Проверка...' : 'Проверить снова'}
                </button>
                <Link to="/account" className="btn-ghost text-[13px] py-2">
                  В кабинет

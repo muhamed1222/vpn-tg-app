@@ -1,19 +1,69 @@
-import React, { useState } from 'react';
-import { PLANS } from '../constants.tsx';
+import React, { useState, useEffect } from 'react';
+import { PLANS } from '../constants';
 import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
+import { apiService } from '../services/apiService';
 
 export const Pay: React.FC = () => {
-  const [selectedPlanId, setSelectedPlanId] = useState(PLANS[0].id);
+  const [selectedPlanId, setSelectedPlanId] = useState(PLANS[1].id); // По умолчанию 1 месяц
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
   const navigate = useNavigate();
 
-  const handlePay = () => {
+  // Загрузка тарифов из API при монтировании
+  useEffect(() => {
+    const loadTariffs = async () => {
+      try {
+        const tariffs = await apiService.getTariffs();
+        // Можно синхронизировать тарифы с API если нужно
+        console.log('Загружены тарифы:', tariffs);
+      } catch (error) {
+        console.error('Ошибка при загрузке тарифов:', error);
+        // В режиме разработки продолжаем работу с локальными планами
+      }
+    };
+
+    // Загружаем только если в Telegram WebApp
+    if ((window as any).Telegram?.WebApp) {
+      loadTariffs();
+    }
+  }, []);
+
+  const handlePay = async () => {
     setLoading(true);
-    setTimeout(() => {
-      navigate(`/result?status=success&plan=${selectedPlanId}`);
-    }, 1500);
+    setError(null);
+
+    try {
+      // Создаем заказ через API бота
+      const payment = await apiService.createPayment(selectedPlanId);
+      
+      // Открываем ссылку на оплату
+      if (payment.invoice_link) {
+        // В Telegram WebApp открываем через Telegram
+        if ((window as any).Telegram?.WebApp) {
+          (window as any).Telegram.WebApp.openInvoice(payment.invoice_link, (status: string) => {
+            if (status === 'paid') {
+              // После успешной оплаты переходим на страницу результата
+              navigate(`/result?order_id=${payment.order_id}&status=pending`);
+            } else {
+              setError('Оплата отменена');
+              setLoading(false);
+            }
+          });
+        } else {
+          // В браузере открываем в новой вкладке
+          window.open(payment.invoice_link, '_blank');
+          navigate(`/result?order_id=${payment.order_id}&status=pending`);
+        }
+      } else {
+        throw new Error('Не получена ссылка на оплату');
+      }
+    } catch (error: any) {
+      console.error('Ошибка при создании заказа:', error);
+      setError(error.message || 'Не удалось создать заказ. Попробуйте позже.');
+      setLoading(false);
+    }
   };
 
   const currentPlan = PLANS.find(p => p.id === selectedPlanId);
@@ -27,9 +77,9 @@ export const Pay: React.FC = () => {
     <div className="max-w-[440px] mx-auto space-y-8 animate-fade">
       <div className="text-center">
         <span className="text-[11px] font-black text-[#CE3000] uppercase tracking-[0.2em] bg-[#CE3000]/10 px-3 py-1.5 rounded-full mb-4 inline-block">
-          Upgrade
+          Обновление
         </span>
-        <h1 className="text-4xl font-black tracking-tighter text-[#0A0A0A] mt-2">Upgrade your plan</h1>
+        <h1 className="text-4xl font-black tracking-tighter text-[#0A0A0A] mt-2">Обновите ваш тариф</h1>
       </div>
 
       <div className="card-ref shadow-xl shadow-black/[0.03]">
@@ -40,26 +90,39 @@ export const Pay: React.FC = () => {
               onClick={() => setBillingCycle('monthly')}
               className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${billingCycle === 'monthly' ? 'bg-white shadow-sm text-[#0A0A0A]' : 'text-[rgba(0,0,0,0.3)] hover:text-[rgba(0,0,0,0.5)]'}`}
              >
-               Monthly
+               Ежемесячно
              </button>
              <button 
               onClick={() => setBillingCycle('annually')}
               className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${billingCycle === 'annually' ? 'bg-white shadow-sm text-[#0A0A0A]' : 'text-[rgba(0,0,0,0.3)] hover:text-[rgba(0,0,0,0.5)]'}`}
              >
-               Annually
+               Ежегодно
              </button>
           </div>
 
           <div className="text-center mb-10">
-             <p className="text-[11px] text-[rgba(0,0,0,0.3)] font-black uppercase tracking-widest mb-1">Per month</p>
+             <p className="text-[11px] text-[rgba(0,0,0,0.3)] font-black uppercase tracking-widest mb-1">В месяц</p>
              <h2 className="text-6xl font-black tracking-tighter text-[#0A0A0A]">
                {currentPlan ? Math.round(currentPlan.price / currentPlan.durationMonths) : 0} ₽
              </h2>
-             <p className="text-[14px] text-[rgba(0,0,0,0.4)] mt-3 font-medium">Billed as {currentPlan?.price} ₽ every {currentPlan?.durationMonths} mo.</p>
+             <p className="text-[14px] text-[rgba(0,0,0,0.4)] mt-3 font-medium">Списание {currentPlan?.price} ₽ каждые {currentPlan?.durationMonths} мес.</p>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-xs text-red-600">{error}</p>
+            </div>
+          )}
+
           <div className="space-y-3">
-             {PLANS.map((plan) => (
+             {PLANS.filter(p => {
+               // Фильтруем планы по циклу оплаты
+               if (billingCycle === 'monthly') {
+                 return p.durationMonths <= 3; // До 3 месяцев включительно
+               } else {
+                 return p.durationMonths >= 6; // От 6 месяцев
+               }
+             }).map((plan) => (
                <div 
                 key={plan.id}
                 onClick={() => setSelectedPlanId(plan.id)}
@@ -83,7 +146,7 @@ export const Pay: React.FC = () => {
                  <div className="text-right">
                     <div className="text-[14px] font-black text-[#0A0A0A]">{plan.price} ₽</div>
                     {plan.savings && (
-                      <div className="text-[10px] font-black text-[#CE3000] uppercase tracking-wider">Save {plan.savings}</div>
+                      <div className="text-[10px] font-black text-[#CE3000] uppercase tracking-wider">Экономия {plan.savings}</div>
                     )}
                  </div>
                </div>
@@ -93,9 +156,9 @@ export const Pay: React.FC = () => {
 
         <div className="card-footer bg-[#FAFAFA] flex flex-col gap-6 p-8">
            <div className="space-y-3">
-              <FeatureItem text="Unlimited High-Speed Traffic" />
-              <FeatureItem text="Up to 5 simultaneous devices" />
-              <FeatureItem text="No logs, absolute privacy" />
+              <FeatureItem text="Безлимитный высокоскоростной трафик" />
+              <FeatureItem text="До 5 одновременных устройств" />
+              <FeatureItem text="Без логов, абсолютная приватность" />
            </div>
            
            <button
@@ -106,14 +169,14 @@ export const Pay: React.FC = () => {
              {loading ? (
                <>
                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                 Processing...
+                 Создание заказа...
                </>
-             ) : 'Upgrade Now'}
+             ) : 'Оплатить сейчас'}
            </button>
            
            <p className="text-[11px] text-[rgba(0,0,0,0.3)] font-medium text-center leading-relaxed">
-             By clicking "Upgrade Now" you agree to our Terms of Service. <br />
-             Payments are secure and encrypted.
+             Нажимая "Обновить сейчас", вы соглашаетесь с нашими Условиями использования. <br />
+             Платежи защищены и зашифрованы.
            </p>
         </div>
       </div>

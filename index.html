@@ -3,12 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outlivion — Dashboard</title>
+    <title>Outlivion — Панель управления</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        @font-face {
+            font-family: 'GT Walsheim Pro';
+            src: url('/fonts/GTWalsheimPro-Regular.woff') format('woff');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'GT Walsheim Pro';
+            src: url('/fonts/GTWalsheimPro-Medium.woff') format('woff');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
         :root {
             --background: #FFFFFF;
             --bg-2: #F5F5F5;
@@ -20,15 +33,33 @@
             --primary: #CE3000;
             --border: rgba(0, 0, 0, 0.06);
             --radius: 12px;
+            --success-bg: rgba(34, 197, 94, 0.1);
+            --success-text: #22C55E;
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'GT Walsheim Pro', sans-serif;
             background-color: var(--background);
             color: var(--fg-3);
             margin: 0;
             -webkit-font-smoothing: antialiased;
             letter-spacing: -0.02em;
+            font-synthesis: none;
+        }
+
+        #root {
+            font-weight: 100;
+        }
+
+        /* Переопределяем Tailwind классы для использования только доступных весов шрифта */
+        .font-semibold {
+            font-weight: 500 !important;
+        }
+        .font-bold {
+            font-weight: 500 !important;
+        }
+        .font-extrabold {
+            font-weight: 500 !important;
         }
 
         .card-ref {
@@ -53,18 +84,33 @@
         .sidebar-link {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
+            gap: 10px;
+            padding: 10px 12px;
             border-radius: 8px;
             font-size: 14px;
             font-weight: 500;
             color: var(--fg-2);
             transition: all 0.2s;
+            text-decoration: none;
+            position: relative;
+            margin-left: 4px;
         }
-        .sidebar-link:hover { color: var(--fg-4); }
-        .sidebar-link[data-active="true"] {
+        .sidebar-link:hover { 
+            color: var(--fg-4); 
+            background: var(--bg-2);
+        }
+        .sidebar-link[data-active="true"],
+        .sidebar-link.active {
             color: var(--fg-4);
             background: var(--bg-2);
+            font-weight: 600;
+        }
+        .sidebar-link button {
+            all: unset;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         input {
@@ -83,21 +129,75 @@
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .card-premium {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            background: #B82A00;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(206, 48, 0, 0.3);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg-2);
+            color: var(--fg-4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-secondary:hover {
+            background: var(--bg-3);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-ghost {
+            color: var(--fg-3);
+            background: transparent;
+            border: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-ghost:hover {
+            color: var(--fg-4);
+        }
+
+        /* Screen reader only - скрывает элемент визуально, но оставляет доступным для screen readers */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
-  }
-}
-</script>
 </head>
 <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>
