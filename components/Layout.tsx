@@ -1,13 +1,15 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../context/AuthContext';
 import { Logo } from './Logo';
-import { ChevronRight, User, CreditCard, Settings, HelpCircle, LogOut } from 'lucide-react';
+import { ChevronRight, User, CreditCard, Settings, HelpCircle, LogOut, Moon, Sun } from 'lucide-react';
 import { AnimatedOutlet } from './AnimatedOutlet';
 import { VpnConnectionCard } from './VpnConnectionCard';
 import { BillingPlanCard } from './BillingPlanCard';
 import { UsageChartCard } from './UsageChartCard';
 import { PaymentHistoryCard } from './PaymentHistoryCard';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { useTheme } from '../hooks/useTheme';
 
 interface NavItem {
   to: string;
@@ -35,6 +37,8 @@ const PAGE_TITLES: Record<string, { title: string; description: string }> = {
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const isOnline = useOnlineStatus();
+  const { theme, toggleTheme } = useTheme();
 
   // Для HashRouter путь может быть с хешем, нормализуем его
   const pathname = location.pathname || location.hash.replace('#', '') || '/';
@@ -49,35 +53,51 @@ export const Layout: React.FC = () => {
   const showBillingBlocks = pathname === '/account' || pathname === '/account/billing';
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[var(--background)]">
       {/* Header */}
-      <header className="w-full h-14 border-b border-border sticky top-0 bg-white/80 backdrop-blur-md z-50 flex justify-center items-center">
+      <header className="w-full h-14 border-b border-border sticky top-0 bg-[var(--background)]/80 backdrop-blur-md z-50 flex justify-center items-center" style={{ borderBottomColor: 'var(--border)' }}>
         <div className="w-[788px] h-full px-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/account"><Logo className="w-6 h-6 text-fg-4" /></Link>
             <div className="flex items-center gap-2 text-[13px] font-medium text-fg-2">
               <ChevronRight size={14} className="opacity-30" />
               <div className="flex items-center gap-1.5 p-1 px-2 hover:bg-bg-2 rounded-full transition-colors cursor-pointer text-fg-4 font-medium">
-                 <div className="w-4 h-4 bg-fg-4 rounded flex items-center justify-center">
-                   <Logo className="w-2.5 h-2.5 text-white" />
+                 <div className="w-4 h-4 bg-[var(--contrast-bg)] rounded flex items-center justify-center">
+                   <Logo className="w-2.5 h-2.5 text-[var(--contrast-text)]" />
                  </div>
                  <span>Аккаунт</span>
               </div>
             </div>
           </div>
-          <Link to="/account" className="w-8 h-8 rounded-full overflow-hidden border border-border">
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.username || 'Пользователь'} />
-            ) : (
-              <div className="w-full h-full bg-bg-2 flex items-center justify-center text-fg-3 text-xs font-bold">
-                {user?.username?.[0]?.toUpperCase() || 'П'}
-              </div>
-            )}
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-8 h-8 rounded-full border border-border bg-bg-2 text-fg-4 flex items-center justify-center transition-colors hover:bg-bg-3"
+              aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить темную тему'}
+              aria-pressed={theme === 'dark'}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <Link to="/account" className="w-8 h-8 rounded-full overflow-hidden border border-border">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.username || 'Пользователь'} />
+              ) : (
+                <div className="w-full h-full bg-bg-2 flex items-center justify-center text-fg-3 text-xs font-bold">
+                  {user?.username?.[0]?.toUpperCase() || 'П'}
+                </div>
+              )}
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* Title */}
+      {!isOnline && (
+        <div className="w-full bg-[var(--warning-bg)] text-[var(--warning-text)] text-xs font-medium py-2 px-4 text-center border-b border-[var(--warning-border)]">
+          Вы офлайн. Некоторые действия могут быть недоступны.
+        </div>
+      )}
       <div className="w-full pt-16 pb-2 flex flex-col items-center gap-1">
         <h1 className="text-2xl font-medium tracking-tight text-fg-4">
           {pageInfo.title}
@@ -128,7 +148,7 @@ export const Layout: React.FC = () => {
           )}
         </aside>
 
-        <main className="flex-1 max-w-[768px]">
+        <main className="flex-1 max-w-[768px]" style={{ width: '496px' }}>
           <VpnConnectionCard />
           {showBillingBlocks && (
             <>
@@ -176,7 +196,7 @@ const SidebarLink = ({
     )}
     <span className="flex-1 font-medium">{label}</span>
     {active && (
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#CE3000] rounded-r-full" 
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[var(--primary)] rounded-r-full" 
            aria-hidden="true" />
     )}
   </Link>

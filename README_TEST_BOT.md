@@ -2,16 +2,16 @@
 
 ## Токен бота
 
-Токен тестового бота сохранен в `TEST_BOT_TOKEN.txt`
+Токен тестового бота храните локально в `TEST_BOT_TOKEN.txt`.
 
-**⚠️ ВАЖНО:** Не коммитьте токен в git! Файл уже добавлен в `.gitignore`
+> **Важно:** Не коммитьте токен в git. Файл добавлен в `.gitignore`.
 
 ## Быстрая настройка
 
-### Вариант 1: Автоматическая настройка
+### Вариант 1. Автоматическая настройка
 
 ```bash
-./SETUP_TEST_BOT.sh
+BOT_TOKEN=ваш_токен_бота ./SETUP_TEST_BOT.sh
 ```
 
 Скрипт автоматически:
@@ -19,11 +19,11 @@
 - Настроит polling режим
 - Настроит CORS для localhost
 
-### Вариант 2: Ручная настройка
+### Вариант 2. Ручная настройка
 
 1. **Настройте бота** (`/Users/kelemetovmuhamed/Desktop/vpn_bot/.env`):
    ```env
-   TELEGRAM_BOT_TOKEN=8285323424:AAFslafbTjNMZ0f4TYCRoKBHGbow809KV1g
+   TELEGRAM_BOT_TOKEN=ваш_токен_бота
    TELEGRAM_USE_POLLING=1
    ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://web.telegram.org
    PORT=3000
@@ -52,10 +52,10 @@
 
 ## Проверка
 
-- ✅ Бот запущен: `http://localhost:3000/health` должен вернуть `OK`
-- ✅ Сайт запущен: `http://localhost:5173`
-- ✅ CORS настроен в боте
-- ✅ API URL указан в `.env.local`
+- [x] Бот запущен: `http://localhost:3000/health` должен вернуть `OK`
+- [x] Сайт запущен: `http://localhost:5173`
+- [x] CORS настроен в боте
+- [x] API URL указан в `.env.local`
 
 ## Отладка
 
@@ -65,4 +65,3 @@
 2. Откройте консоль браузера (F12) и проверьте ошибки
 3. Убедитесь, что сайт открыт через Telegram (не в обычном браузере)
 4. Проверьте, что `initData` загружается в консоли
-

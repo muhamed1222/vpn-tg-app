@@ -6,7 +6,7 @@
 
 ## Что было сделано
 
-### 1. API Сервис (`services/apiService.ts`)
+### 1. API сервис (`services/apiService.ts`)
 - Создан сервис для работы с API бота
 - Поддержка Telegram WebApp авторизации через `initData`
 - Методы:
@@ -15,7 +15,7 @@
   - `createPayment()` - создание заказа на оплату
   - `checkPaymentStatus()` - проверка статуса оплаты
 
-### 2. Telegram WebApp интеграция
+### 2. Интеграция Telegram WebApp
 - Добавлен скрипт Telegram WebApp SDK в `index.html`
 - Автоматическая авторизация через Telegram WebApp
 - Поддержка режима разработки (localStorage fallback)
@@ -74,7 +74,7 @@ VITE_API_URL=http://localhost:3000
 
 Сайт должен быть доступен по HTTPS и добавлен как WebApp в настройках бота.
 
-## API Endpoints
+## API эндпоинты
 
 Сайт использует следующие endpoints бота:
 
@@ -100,7 +100,7 @@ VITE_API_URL=http://localhost:3000
 4. При оплате должен открываться инвойс Telegram
 5. После оплаты статус обновляется автоматически
 
-## Troubleshooting
+## Возможные проблемы
 
 ### Ошибка "Telegram WebApp не инициализирован"
 - Убедитесь, что сайт открыт через Telegram
@@ -114,4 +114,3 @@ VITE_API_URL=http://localhost:3000
 ### VPN ключ не загружается
 - Проверьте, что у пользователя есть активная подписка
 - Проверьте логи бота на наличие ошибок
-

@@ -1,6 +1,8 @@
 /**
  * Сервис для работы с API VPN бота
  */
+import { logger } from '../utils/logger';
+import { getTelegramWebApp } from '../utils/telegram';
 
 // API URL для тестового бота
 // В development режиме используем localhost, в production - продакшн URL
@@ -59,30 +61,48 @@ export interface PaymentStatusResponse {
   message?: string;
 }
 
+export interface BillingHistoryItem {
+  timestamp: number;
+  bytes: number;
+}
+
+export interface BillingStatsResponse {
+  usedBytes: number;
+  limitBytes: number | null;
+  averagePerDayBytes: number;
+  usageHistory: BillingHistoryItem[];
+  planId?: string | null;
+  planName?: string | null;
+  period?: {
+    start: number | null;
+    end: number | null;
+  };
+  updatedAt?: number;
+}
+
 class ApiService {
   private getInitData(): string | null {
     // Получаем initData из Telegram WebApp
     if (typeof window !== 'undefined') {
-      const tg = (window as any).Telegram;
-      if (tg?.WebApp) {
-        const webApp = tg.WebApp;
+      const webApp = getTelegramWebApp();
+      if (webApp) {
         
         // Проверяем, что WebApp готов
         if (webApp.initData && typeof webApp.initData === 'string' && webApp.initData.length > 0) {
-          console.log('[ApiService] initData найден, длина:', webApp.initData.length);
+          logger.debug('[ApiService] initData найден, длина:', webApp.initData.length);
           return webApp.initData;
         }
         
         // Если initData пустой, но WebApp существует, возможно он еще загружается
-        console.log('[ApiService] WebApp существует, но initData пустой или не готов');
-        console.log('[ApiService] WebApp состояние:', {
+        logger.debug('[ApiService] WebApp существует, но initData пустой или не готов');
+        logger.debug('[ApiService] WebApp состояние:', {
           version: webApp.version,
           platform: webApp.platform,
           initData: webApp.initData ? 'есть (пустой)' : 'нет',
           initDataUnsafe: webApp.initDataUnsafe ? 'есть' : 'нет'
         });
       } else {
-        console.log('[ApiService] Telegram.WebApp не найден');
+        logger.debug('[ApiService] Telegram.WebApp не найден');
       }
     }
     return null;
@@ -95,13 +115,13 @@ class ApiService {
       const checkInitData = () => {
         const initData = this.getInitData();
         if (initData && initData.length > 0) {
-          console.log('[ApiService] initData получен');
+          logger.debug('[ApiService] initData получен');
           resolve(initData);
           return;
         }
         
         if (Date.now() - startTime >= maxWait) {
-          console.warn('[ApiService] Таймаут ожидания initData');
+          logger.warn('[ApiService] Таймаут ожидания initData');
           resolve(null);
           return;
         }
@@ -121,7 +141,7 @@ class ApiService {
     let initData = this.getInitData();
     
     if (!initData) {
-      console.log('[ApiService] initData не найден, ожидание инициализации...');
+      logger.debug('[ApiService] initData не найден, ожидание инициализации...');
       initData = await this.waitForInitData(2000);
     }
     
@@ -129,21 +149,56 @@ class ApiService {
       throw new Error('Telegram WebApp не инициализирован. Убедитесь, что вы открыли сайт через Telegram бота.');
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': initData,
-        ...options.headers,
-      },
-    });
+    const maxRetries = 2;
+    const timeoutMs = 10000;
+    let attempt = 0;
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    const shouldRetry = (status: number) => status === 429 || status >= 500;
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    while (true) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': initData,
+            ...options.headers,
+          },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+          if (attempt < maxRetries && shouldRetry(response.status)) {
+            attempt += 1;
+            await delay(250 * Math.pow(2, attempt));
+            continue;
+          }
+          throw new Error(error.error || `HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        clearTimeout(timeoutId);
+        const errorName = error instanceof Error ? error.name : '';
+        const isAbort = errorName === 'AbortError';
+        const isNetworkError = error instanceof TypeError;
+
+        if (attempt < maxRetries && (isAbort || isNetworkError)) {
+          attempt += 1;
+          await delay(250 * Math.pow(2, attempt));
+          continue;
+        }
+
+        throw error;
+      }
     }
-
-    return response.json();
   }
 
   /**
@@ -181,6 +236,13 @@ class ApiService {
   }
 
   /**
+   * Получить биллинг и трафик пользователя
+   */
+  async getBillingStats(): Promise<BillingStatsResponse> {
+    return this.request<BillingStatsResponse>('/api/billing');
+  }
+
+  /**
    * Получить историю платежей пользователя
    */
   async getPaymentHistory(): Promise<PaymentHistoryItem[]> {
@@ -192,6 +254,7 @@ export interface PaymentHistoryItem {
   id: string;
   orderId: string;
   amount: number;
+  currency: 'XTR' | 'RUB';
   date: number; // timestamp
   status: 'success' | 'fail' | 'pending' | 'cancelled';
   planName: string;
@@ -200,4 +263,3 @@ export interface PaymentHistoryItem {
 }
 
 export const apiService = new ApiService();
-

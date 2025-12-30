@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { PLATFORMS } from '../constants';
-import { Copy, Check, Download, ExternalLink, Smartphone, Laptop, Monitor, Apple, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
-import { useAuth } from '../App';
-import { apiService } from '../services/apiService';
+import { Download, ExternalLink, Laptop, Monitor, Apple, Tablet, AlertCircle, Loader2 } from 'lucide-react';
+import { useVpnKey } from '../hooks/useVpnKey';
+import { VpnKeyCode } from '../components/VpnKeyCode';
 
 const PlatformIcon = ({ id, size = 20 }: { id: string, size?: number }) => {
   switch (id) {
-    case 'ios': return <Smartphone size={size} />;
-    case 'android': return <Smartphone size={size} />;
+    case 'ios': return <Apple size={size} />;
+    case 'android': return <Tablet size={size} />;
     case 'windows': return <Monitor size={size} />;
     case 'macos': return <Apple size={size} />;
     default: return <Laptop size={size} />;
@@ -24,61 +24,50 @@ const DOWNLOAD_LINKS: Record<string, { url: string; name: string }> = {
 };
 
 export const Instructions: React.FC = () => {
-  const { subscription } = useAuth();
-  const [activePlatform, setActivePlatform] = useState(PLATFORMS[0].id);
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState<string | null>(null);
-  const [keyVisible, setKeyVisible] = useState(false);
-  const [vpnKey, setVpnKey] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // Загружаем сохраненную платформу из localStorage или используем первую по умолчанию
+  const getInitialPlatform = () => {
+    const saved = localStorage.getItem('selectedPlatform');
+    return saved && PLATFORMS.find(p => p.id === saved) ? saved : PLATFORMS[0].id;
+  };
 
-  // Загрузка VPN ключа из API
+  const [activePlatform, setActivePlatform] = useState(getInitialPlatform);
+  const { vpnKey, loading, error } = useVpnKey();
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabListRef = useRef<HTMLDivElement>(null);
+
+  // Сохраняем выбор платформы в localStorage
   useEffect(() => {
-    const loadVpnKey = async () => {
-      setLoadError(null);
-      setLoading(true);
-      
-      try {
-        const user = await apiService.getMe();
-        if (user.subscription.vlessKey) {
-          setVpnKey(user.subscription.vlessKey);
-        } else {
-          setLoadError('VPN ключ недоступен. Убедитесь, что у вас активная подписка.');
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке VPN ключа:', error);
-        // В режиме разработки используем моковый ключ
-        if (!(window as any).Telegram?.WebApp) {
-          setVpnKey('vless://outlivion-mock-key-12345@nodes.space:443?security=reality&sni=google.com&fp=chrome&pbk=xyz#Outlivion-Node');
-        } else {
-          setLoadError('Не удалось загрузить VPN ключ. Попробуйте обновить страницу.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+    localStorage.setItem('selectedPlatform', activePlatform);
+  }, [activePlatform]);
 
-    loadVpnKey();
-  }, [subscription]);
+  // Обработка клавиатурной навигации
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    let newIndex = index;
 
-  const maskedKey = vpnKey ? vpnKey.substring(0, 25) + '...' + vpnKey.substring(vpnKey.length - 20) : 'Загрузка...';
-
-  const handleCopy = async () => {
-    if (!vpnKey) {
-      setCopyError('VPN ключ недоступен');
-      return;
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        newIndex = index > 0 ? index - 1 : PLATFORMS.length - 1;
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        newIndex = index < PLATFORMS.length - 1 ? index + 1 : 0;
+        break;
+      case 'Home':
+        e.preventDefault();
+        newIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        newIndex = PLATFORMS.length - 1;
+        break;
+      default:
+        return;
     }
 
-    setCopyError(null);
-    try {
-      await navigator.clipboard.writeText(vpnKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Ошибка при копировании:', error);
-      setCopyError('Не удалось скопировать ключ. Попробуйте выделить и скопировать вручную.');
-    }
+    const newPlatform = PLATFORMS[newIndex];
+    setActivePlatform(newPlatform.id);
+    tabRefs.current[newIndex]?.focus();
   };
 
   const downloadLink = DOWNLOAD_LINKS[activePlatform];
@@ -86,25 +75,50 @@ export const Instructions: React.FC = () => {
   return (
     <div className="max-w-[800px] mx-auto space-y-10 animate-fade">
       {/* Tabs */}
-      <div className="flex bg-white p-1.5 rounded-2xl border border-[rgba(10,10,10,0.06)] overflow-x-auto no-scrollbar shadow-sm">
-        {PLATFORMS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setActivePlatform(p.id)}
-            className={`flex-1 min-w-[120px] py-3 px-4 rounded-xl text-[13px] font-bold transition-all flex items-center justify-center gap-2.5 ${
-              activePlatform === p.id 
-                ? 'bg-[#0A0A0A] text-white shadow-lg' 
-                : 'text-[rgba(10,10,10,0.4)] hover:text-[#0A0A0A] hover:bg-gray-50'
-            }`}
-          >
-            <PlatformIcon id={p.id} size={16} />
-            <span>{p.name}</span>
-          </button>
-        ))}
+      <div
+        ref={tabListRef}
+        role="tablist"
+        aria-label="Выбор платформы"
+        className="flex gap-1.5 bg-[var(--background)] p-1.5 rounded-2xl border border-border overflow-x-auto tabs-scrollbar"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        {PLATFORMS.map((p, index) => {
+          const isActive = activePlatform === p.id;
+          return (
+            <button
+              key={p.id}
+              ref={(el) => { tabRefs.current[index] = el; }}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`platform-content-${p.id}`}
+              id={`platform-tab-${p.id}`}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => setActivePlatform(p.id)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              className={`flex-1 min-w-[100px] py-3 px-3 md:px-4 rounded-xl text-[13px] font-bold transition-all flex items-center justify-center gap-2.5 relative focus:outline-none focus:ring-2 focus:ring-[var(--contrast-bg)] focus:ring-offset-2 focus:ring-offset-[var(--background)] ${
+                isActive
+                  ? 'bg-[var(--contrast-bg)] text-[var(--contrast-text)] shadow-sm'
+                  : 'text-fg-2 hover:text-fg-4 hover:bg-bg-2'
+              }`}
+            >
+              <PlatformIcon id={p.id} size={16} />
+              <span>{p.name}</span>
+              {isActive && (
+                <span className="absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-[var(--contrast-text)] rounded-full" aria-hidden="true" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
-      <div className="card-premium p-8 md:p-12 space-y-12">
+      <div
+        id={`platform-content-${activePlatform}`}
+        role="tabpanel"
+        aria-labelledby={`platform-tab-${activePlatform}`}
+        className="card-premium p-5 space-y-12 mt-5 animate-fade"
+        style={{ marginTop: '20px' }}
+      >
         <div className="space-y-12">
           <Step 
             number="1" 
@@ -116,7 +130,7 @@ export const Instructions: React.FC = () => {
                   href={downloadLink.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 bg-[#0A0A0A] text-white px-6 py-3 rounded-xl text-[13px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] hover:bg-[#0A0A0A]/90"
+                  className="flex items-center gap-2.5 bg-[var(--contrast-bg)] text-[var(--contrast-text)] px-6 py-3 rounded-xl text-[13px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] hover:bg-[var(--contrast-bg-hover)] w-fit"
                 >
                   <Download size={16} /> Скачать из {downloadLink.name}
                   <ExternalLink size={14} />
@@ -124,7 +138,7 @@ export const Instructions: React.FC = () => {
               ) : (
                 <button 
                   disabled
-                  className="flex items-center gap-2.5 bg-[#0A0A0A]/50 text-white px-6 py-3 rounded-xl text-[13px] font-bold cursor-not-allowed"
+                  className="flex items-center gap-2.5 bg-[var(--contrast-bg)] text-[var(--contrast-text)] px-6 py-3 rounded-xl text-[13px] font-bold cursor-not-allowed opacity-50"
                 >
                   <Download size={16} /> Скачать приложение
                 </button>
@@ -137,72 +151,28 @@ export const Instructions: React.FC = () => {
             description="Ваш уникальный идентификатор для безопасного туннеля."
             action={
               <div className="flex flex-col gap-3">
-                {loadError ? (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2" role="alert">
-                    <AlertCircle size={16} className="text-red-600 mt-0.5 shrink-0" />
+                {error ? (
+                  <div className="p-4 bg-[var(--danger-bg)] border border-[var(--danger-border)] rounded-xl flex items-start gap-2" role="alert">
+                    <AlertCircle size={16} className="text-[var(--danger-text)] mt-0.5 shrink-0" />
                     <div className="flex-1">
-                      <p className="text-xs text-red-800 font-medium mb-1">{loadError}</p>
+                      <p className="text-xs text-[var(--danger-text)] font-medium mb-1">{error}</p>
                       <Link 
                         to="/account" 
-                        className="text-xs text-red-600 hover:underline font-medium"
+                        className="text-xs text-[var(--danger-text)] hover:underline font-medium"
                       >
                         Перейти в аккаунт →
                       </Link>
                     </div>
                   </div>
                 ) : loading ? (
-                  <div className="bg-[rgba(10,10,10,0.02)] border border-[rgba(10,10,10,0.06)] p-4 rounded-xl flex items-center gap-3">
+                  <div className="bg-bg-2 rounded-lg p-4 flex items-center gap-3">
                     <Loader2 size={16} className="text-fg-3 animate-spin" />
                     <span className="text-xs text-fg-2 font-medium">Загрузка VPN ключа...</span>
                   </div>
                 ) : vpnKey ? (
-                  <>
-                    <div className="bg-[rgba(10,10,10,0.02)] border border-[rgba(10,10,10,0.06)] p-4 rounded-xl font-mono text-[11px] break-all text-[rgba(10,10,10,0.6)] select-all">
-                      {keyVisible ? vpnKey : maskedKey}
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button 
-                        onClick={handleCopy}
-                        disabled={copied}
-                        className="flex items-center gap-2.5 bg-white border border-[rgba(10,10,10,0.1)] text-[#0A0A0A] px-6 py-3 rounded-xl text-[13px] font-bold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {copied ? (
-                          <>
-                            <Check size={16} className="text-green-600" />
-                            Скопировано
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={16} />
-                            Копировать ключ
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setKeyVisible(!keyVisible)}
-                        className="flex items-center gap-2.5 bg-white border border-[rgba(10,10,10,0.1)] text-[#0A0A0A] px-4 py-3 rounded-xl text-[13px] font-bold hover:bg-gray-50 transition-all"
-                        aria-label={keyVisible ? 'Скрыть ключ' : 'Показать ключ'}
-                      >
-                        {keyVisible ? (
-                          <>
-                            <EyeOff size={16} />
-                            Скрыть
-                          </>
-                        ) : (
-                          <>
-                            <Eye size={16} />
-                            Показать
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    {copyError && (
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2" role="alert">
-                        <AlertCircle size={14} className="text-yellow-600 mt-0.5 shrink-0" />
-                        <p className="text-xs text-yellow-800">{copyError}</p>
-                      </div>
-                    )}
-                  </>
+                  <div className="bg-bg-2 rounded-lg p-4">
+                    <VpnKeyCode value={vpnKey} />
+                  </div>
                 ) : (
                   <div className="p-4 bg-bg-2 border border-border rounded-xl">
                     <p className="text-xs text-fg-2">VPN ключ недоступен</p>
@@ -218,11 +188,11 @@ export const Instructions: React.FC = () => {
           />
         </div>
 
-        <div className="pt-10 border-t border-[rgba(10,10,10,0.06)] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[13px] text-[rgba(10,10,10,0.4)] font-medium">Нужна помощь с конфигурацией?</p>
+        <div className="pt-5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderTopColor: 'var(--border)' }}>
+          <p className="text-[13px] text-fg-2 font-medium">Нужна помощь с конфигурацией?</p>
           <Link 
             to="/support" 
-            className="flex items-center gap-2 text-[13px] font-bold text-[#CE3000] hover:translate-x-1 transition-transform"
+            className="flex items-center gap-2 text-[13px] font-bold text-[var(--primary)] hover:translate-x-1 transition-transform"
           >
             Связаться с инженером <ExternalLink size={14} />
           </Link>
@@ -233,14 +203,14 @@ export const Instructions: React.FC = () => {
 };
 
 const Step: React.FC<{ number: string; title: string; description: string; action?: React.ReactNode }> = ({ number, title, description, action }) => (
-  <div className="flex gap-8 group">
-    <div className="w-10 h-10 rounded-full bg-[rgba(10,10,10,0.03)] border border-[rgba(10,10,10,0.06)] text-[#0A0A0A] flex items-center justify-center text-[15px] font-black shrink-0 transition-colors group-hover:bg-[#0A0A0A] group-hover:text-white group-hover:border-[#0A0A0A]">
+  <div className="flex gap-5 group">
+    <div className="w-10 h-10 rounded-full bg-bg-2 border border-border text-fg-4 flex items-center justify-center text-[15px] font-black shrink-0 transition-colors group-hover:bg-[var(--contrast-bg)] group-hover:text-[var(--contrast-text)] group-hover:border-[var(--contrast-bg)]" style={{ borderColor: 'var(--border)' }}>
       {number}
     </div>
     <div className="flex-1 space-y-5">
       <div>
-        <h4 className="text-lg font-bold text-[#0A0A0A] tracking-tight">{title}</h4>
-        <p className="text-[15px] text-[rgba(10,10,10,0.5)] leading-relaxed mt-1">{description}</p>
+        <h4 className="text-lg font-bold text-fg-4 tracking-tight">{title}</h4>
+        <p className="text-[15px] text-fg-2 leading-relaxed mt-1">{description}</p>
       </div>
       {action && <div className="animate-fade">{action}</div>}
     </div>

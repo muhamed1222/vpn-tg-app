@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -9,55 +9,46 @@ import { Result } from './pages/Result';
 import { Instructions } from './pages/Instructions';
 import { Support } from './pages/Support';
 import { User, Subscription, SubscriptionStatus } from './types';
+import { AuthContext } from './context/AuthContext';
 import { apiService } from './services/apiService';
-
-interface AuthContextType {
-  user: User | null;
-  subscription: Subscription;
-  loading: boolean;
-  login: () => Promise<void>;
-  logout: () => void;
-  refreshSubscription: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
-};
-
-// Проверка, запущено ли приложение в Telegram WebApp
-const isTelegramWebApp = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const tg = (window as any).Telegram?.WebApp;
-  if (!tg) return false;
-  
-  // Проверяем, что это реальный Telegram WebApp
-  // В реальном Telegram есть initData или хотя бы платформа определена
-  // Если скрипт просто загружен в обычном браузере, платформа будет undefined или 'unknown'
-  const hasInitData = tg.initData && typeof tg.initData === 'string' && tg.initData.length > 0;
-  const hasInitDataUnsafe = tg.initDataUnsafe && tg.initDataUnsafe.user;
-  const platform = tg.platform;
-  
-  // Реальный Telegram имеет одну из платформ: tdesktop, android, ios, web
-  // Или имеет initData/initDataUnsafe
-  const isRealTelegram = platform && platform !== 'unknown' && platform !== '';
-  const hasRealData = hasInitData || hasInitDataUnsafe;
-  
-  return !!(isRealTelegram || hasRealData);
-};
+import { logger } from './utils/logger';
+import { getTelegramWebApp, isTelegramWebApp } from './utils/telegram';
 
 // Инициализация Telegram WebApp
 const initTelegramWebApp = () => {
   if (isTelegramWebApp()) {
-    const tg = (window as any).Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    return tg;
+    const tg = getTelegramWebApp();
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      return tg;
+    }
   }
   return null;
+};
+
+const mapSubscription = (subscription: {
+  isActive: boolean;
+  expiresAt: number | null;
+}): Subscription => {
+  const now = Date.now();
+  const expiresAt = subscription.expiresAt;
+  const isStillActive = typeof expiresAt === 'number' && expiresAt > now;
+
+  let status = SubscriptionStatus.NONE;
+  if (subscription.isActive || isStillActive) {
+    status = SubscriptionStatus.ACTIVE;
+  } else if (typeof expiresAt === 'number' && expiresAt <= now) {
+    status = SubscriptionStatus.EXPIRED;
+  }
+
+  return {
+    status,
+    activeUntil: status === SubscriptionStatus.ACTIVE && typeof expiresAt === 'number'
+      ? new Date(expiresAt).toLocaleDateString('ru-RU')
+      : undefined,
+    planId: undefined,
+  };
 };
 
 const App: React.FC = () => {
@@ -112,27 +103,14 @@ const App: React.FC = () => {
         };
 
         // Получаем аватар из Telegram WebApp если доступен
-        const tg = (window as any).Telegram?.WebApp;
+        const tg = getTelegramWebApp();
         if (tg?.initDataUnsafe?.user?.photo_url) {
           userData.avatar = tg.initDataUnsafe.user.photo_url;
         }
 
         setUser(userData);
 
-        // Преобразуем данные подписки
-        const subscriptionData: Subscription = {
-          status: apiUser.subscription.isActive 
-            ? SubscriptionStatus.ACTIVE 
-            : apiUser.subscription.expiresAt && apiUser.subscription.expiresAt > Date.now()
-            ? SubscriptionStatus.EXPIRED
-            : SubscriptionStatus.NONE,
-          activeUntil: apiUser.subscription.expiresAt 
-            ? new Date(apiUser.subscription.expiresAt).toLocaleDateString('ru-RU')
-            : undefined,
-          planId: undefined // План определяется по expiresAt
-        };
-
-        setSubscription(subscriptionData);
+        setSubscription(mapSubscription(apiUser.subscription));
       } catch (error) {
         console.error('Ошибка при загрузке данных пользователя:', error);
         // В случае ошибки не блокируем приложение
@@ -145,9 +123,9 @@ const App: React.FC = () => {
   }, []);
 
   const login = async () => {
-    console.log('[Login] Начало авторизации');
+    logger.debug('[Login] Начало авторизации');
     const isInTelegram = isTelegramWebApp();
-    console.log('[Login] isTelegramWebApp:', isInTelegram);
+    logger.debug('[Login] isTelegramWebApp:', isInTelegram);
     
     // В Telegram WebApp авторизация происходит автоматически
     if (isInTelegram) {
@@ -155,10 +133,10 @@ const App: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       try {
-        console.log('[Login] Загрузка данных из API...');
+        logger.debug('[Login] Загрузка данных из API...');
         // Пытаемся загрузить данные пользователя из API
         const apiUser = await apiService.getMe();
-        console.log('[Login] Данные получены:', apiUser);
+        logger.debug('[Login] Данные получены:', apiUser);
         
         const userData: User = {
           id: `usr_${apiUser.id}`,
@@ -167,36 +145,24 @@ const App: React.FC = () => {
           avatar: undefined
         };
 
-        const tg = (window as any).Telegram?.WebApp;
+        const tg = getTelegramWebApp();
         if (tg?.initDataUnsafe?.user?.photo_url) {
           userData.avatar = tg.initDataUnsafe.user.photo_url;
         }
 
-        console.log('[Login] Установка пользователя:', userData);
+        logger.debug('[Login] Установка пользователя:', userData);
         setUser(userData);
 
-        const subscriptionData: Subscription = {
-          status: apiUser.subscription.isActive 
-            ? SubscriptionStatus.ACTIVE 
-            : apiUser.subscription.expiresAt && apiUser.subscription.expiresAt > Date.now()
-            ? SubscriptionStatus.EXPIRED
-            : SubscriptionStatus.NONE,
-          activeUntil: apiUser.subscription.expiresAt 
-            ? new Date(apiUser.subscription.expiresAt).toLocaleDateString('ru-RU')
-            : undefined,
-          planId: undefined
-        };
-
-        setSubscription(subscriptionData);
-        console.log('[Login] Авторизация завершена успешно');
+        setSubscription(mapSubscription(apiUser.subscription));
+        logger.debug('[Login] Авторизация завершена успешно');
         return;
-      } catch (error: any) {
+      } catch (error) {
         console.error('[Login] Ошибка при авторизации через Telegram:', error);
         
         // Если initData недоступен, используем данные из initDataUnsafe для моковой авторизации
-        const tg = (window as any).Telegram?.WebApp;
+        const tg = getTelegramWebApp();
         if (tg?.initDataUnsafe?.user) {
-          console.log('[Login] Использование initDataUnsafe для моковой авторизации');
+          logger.debug('[Login] Использование initDataUnsafe для моковой авторизации');
           const tgUser = tg.initDataUnsafe.user;
           
           const userData: User = {
@@ -216,12 +182,12 @@ const App: React.FC = () => {
         }
         
         // Если ошибка и мы не в реальном Telegram, переключаемся на режим разработки
-        console.warn('[Login] Ошибка API, переключаемся на режим разработки');
+        logger.warn('[Login] Ошибка API, переключаемся на режим разработки');
       }
     }
 
     // Для разработки - моковый пользователь
-    console.log('[Login] Режим разработки - создание мокового пользователя');
+    logger.debug('[Login] Режим разработки - создание мокового пользователя');
     try {
       const mockUser: User = {
         id: 'usr_1',
@@ -230,7 +196,7 @@ const App: React.FC = () => {
         avatar: 'https://cdn.visitors.now/users/e2ccd994-4e15-425d-81b4-ad614a9d46dc/avatars/vVBAtzhu4sxfKkQ5_Y7_3.png'
       };
       
-      console.log('[Login] Установка мокового пользователя:', mockUser);
+      logger.debug('[Login] Установка мокового пользователя:', mockUser);
       setUser(mockUser);
       localStorage.setItem('user', JSON.stringify(mockUser));
       
@@ -241,7 +207,7 @@ const App: React.FC = () => {
         planId: 'plan_365'
       };
       setSubscription(mockSubscription);
-      console.log('[Login] Моковая авторизация завершена');
+      logger.debug('[Login] Моковая авторизация завершена');
     } catch (error) {
       console.error('[Login] Ошибка при создании мокового пользователя:', error);
       throw error;
@@ -267,18 +233,7 @@ const App: React.FC = () => {
 
     try {
       const apiUser = await apiService.getMe();
-      const subscriptionData: Subscription = {
-        status: apiUser.subscription.isActive 
-          ? SubscriptionStatus.ACTIVE 
-          : apiUser.subscription.expiresAt && apiUser.subscription.expiresAt > Date.now()
-          ? SubscriptionStatus.EXPIRED
-          : SubscriptionStatus.NONE,
-        activeUntil: apiUser.subscription.expiresAt 
-          ? new Date(apiUser.subscription.expiresAt).toLocaleDateString('ru-RU')
-          : undefined,
-        planId: undefined
-      };
-      setSubscription(subscriptionData);
+      setSubscription(mapSubscription(apiUser.subscription));
     } catch (error) {
       console.error('Ошибка при обновлении подписки:', error);
     }
@@ -286,9 +241,9 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[#CE3000] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm text-fg-2">Загрузка...</p>
         </div>
       </div>

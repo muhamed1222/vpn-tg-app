@@ -3,7 +3,7 @@ import { PLANS } from '../constants';
 import { Check, X } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { isTelegramWebApp } from '../utils/telegram';
-import { usePayment } from '../hooks/usePayment';
+import { PaymentProvider, usePayment } from '../hooks/usePayment';
 
 interface RenewSubscriptionModalProps {
   isOpen: boolean;
@@ -12,7 +12,11 @@ interface RenewSubscriptionModalProps {
 
 export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ isOpen, onClose }) => {
   const [selectedPlanId, setSelectedPlanId] = useState(PLANS[1].id);
-  const { loading, error, setError, handlePay } = usePayment({ onPaid: onClose });
+  const { loading, error, handlePay } = usePayment({ onPaid: onClose, allowBrowserFallback: true });
+  const isInTelegram = isTelegramWebApp();
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>(
+    isInTelegram ? 'telegram' : 'yookassa',
+  );
 
   // Загрузка тарифов из API при монтировании
   useEffect(() => {
@@ -53,12 +57,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
   }, [isOpen]);
 
   const onPay = () => {
-    if (!isTelegramWebApp()) {
-      setError('Оплата доступна только через Telegram WebApp.');
-      return;
-    }
-
-    handlePay(selectedPlanId).catch(() => {
+    handlePay(selectedPlanId, paymentProvider).catch(() => {
       // Ошибка уже записана в hook
     });
   };
@@ -71,11 +70,11 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl max-w-[500px] w-full max-h-[90vh] overflow-y-auto animate-scale"
+        className="bg-[var(--background)] rounded-2xl max-w-[500px] w-full max-h-[90vh] overflow-y-auto animate-scale"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-[var(--background)] border-b border-border px-6 py-4 flex items-center justify-between rounded-t-2xl" style={{ borderBottomColor: 'var(--border)' }}>
           <h2 className="text-xl font-bold text-fg-4">Продление подписки</h2>
           <button
             onClick={onClose}
@@ -89,8 +88,8 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
         {/* Content */}
         <div className="p-6 space-y-6">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-xs text-red-600">{error}</p>
+            <div className="p-3 bg-[var(--danger-bg)] border border-[var(--danger-border)] rounded-lg">
+              <p className="text-xs text-[var(--danger-text)]">{error}</p>
             </div>
           )}
 
@@ -102,15 +101,15 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
                 onClick={() => setSelectedPlanId(plan.id)}
                 className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border-2 transition-all duration-200 ${
                   selectedPlanId === plan.id 
-                    ? 'border-[#CE3000] bg-[#CE3000]/[0.02]' 
-                    : 'border-border hover:border-[#CE3000]/50 hover:bg-bg-2'
+                    ? 'border-[var(--primary)] bg-[var(--primary-soft)]' 
+                    : 'border-border hover:border-[var(--primary)] hover:bg-bg-2'
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    selectedPlanId === plan.id ? 'border-[#CE3000] bg-[#CE3000]' : 'border-border'
+                    selectedPlanId === plan.id ? 'border-[var(--primary)] bg-[var(--primary)]' : 'border-border'
                   }`}>
-                    {selectedPlanId === plan.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                    {selectedPlanId === plan.id && <div className="w-2 h-2 bg-[var(--on-primary)] rounded-full" />}
                   </div>
                   <div>
                     <div className="text-sm font-bold text-fg-4">{plan.name}</div>
@@ -120,11 +119,42 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
                 <div className="text-right">
                   <div className="text-sm font-black text-fg-4">{plan.price} ₽</div>
                   {plan.savings && (
-                    <div className="text-[10px] font-black text-[#CE3000] uppercase tracking-wider">Экономия {plan.savings}</div>
+                    <div className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wider">Экономия {plan.savings}</div>
                   )}
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-[12px] text-fg-2 font-medium">Способ оплаты</p>
+            {isInTelegram ? (
+              <div className="px-4 py-3 rounded-xl border border-border bg-bg-2">
+                <div className="text-[13px] font-bold text-fg-4">Telegram Stars</div>
+                <div className="text-[11px] text-fg-2">Оплата внутри Telegram</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { id: 'yookassa', label: 'ЮKassa', hint: 'Карты и СБП' },
+                  { id: 'heleket', label: 'Heleket', hint: 'Крипто и карты' },
+                ].map((provider) => (
+                  <button
+                    key={provider.id}
+                    type="button"
+                    onClick={() => setPaymentProvider(provider.id as PaymentProvider)}
+                    className={`p-4 rounded-xl border text-left transition-all ${
+                      paymentProvider === provider.id
+                        ? 'border-[var(--primary)] bg-[var(--primary-soft)]'
+                        : 'border-border bg-bg-2 hover:border-[var(--primary)]'
+                    }`}
+                  >
+                    <div className="text-[13px] font-bold text-fg-4">{provider.label}</div>
+                    <div className="text-[11px] text-fg-2 mt-1">{provider.hint}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Features */}
@@ -136,11 +166,11 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-[#FAFAFA] border-t border-border p-6 rounded-b-2xl space-y-4">
+        <div className="sticky bottom-0 bg-bg-2 border-t border-border p-6 rounded-b-2xl space-y-4">
           <button
             onClick={onPay}
             disabled={loading}
-            className="w-full bg-[#CE3000] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#B82A00] active:scale-[0.98] transition-all shadow-lg shadow-[#CE3000]/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[var(--primary)] text-white py-3 rounded-xl font-bold text-sm hover:bg-[var(--primary-hover)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
@@ -162,8 +192,8 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
 
 const FeatureItem = ({ text }: { text: string }) => (
   <div className="flex items-center gap-2.5">
-    <div className="w-4 h-4 rounded-full bg-[#CE3000]/10 flex items-center justify-center shrink-0">
-      <Check size={10} className="text-[#CE3000]" strokeWidth={4} />
+    <div className="w-4 h-4 rounded-full bg-[var(--primary-soft)] flex items-center justify-center shrink-0">
+      <Check size={10} className="text-[var(--primary)]" strokeWidth={4} />
     </div>
     <span className="text-xs font-bold text-fg-2">{text}</span>
   </div>

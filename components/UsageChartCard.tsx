@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../App';
+import { useAuth } from '../context/AuthContext';
+import { isTelegramWebApp } from '../utils/telegram';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
 import { RefreshCw, AlertCircle } from 'lucide-react';
-import { apiService } from '../services/apiService';
+import { apiService, BillingStatsResponse } from '../services/apiService';
 
 interface UsageData {
   day: string;
@@ -34,6 +35,18 @@ const formatGB = (gb: number): string => {
   return `${(gb * 1024).toFixed(0)} МБ`;
 };
 
+const bytesToGB = (bytes: number): number => bytes / (1024 * 1024 * 1024);
+
+const mapBillingStats = (data: BillingStatsResponse): BillingStats => ({
+  currentUsage: bytesToGB(data.usedBytes),
+  totalLimit: data.limitBytes ? bytesToGB(data.limitBytes) : Infinity,
+  averagePerDay: bytesToGB(data.averagePerDayBytes),
+  usageData: data.usageHistory.map((entry) => ({
+    day: new Date(entry.timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+    value: bytesToGB(entry.bytes),
+  })),
+});
+
 export const UsageChartCard: React.FC = () => {
   const { subscription } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -53,15 +66,18 @@ export const UsageChartCard: React.FC = () => {
       setError(null);
       
       try {
-        // TODO: Заменить на реальный API endpoint когда будет готов
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setStats({
-          currentUsage: 2,
-          totalLimit: Infinity,
-          averagePerDay: 0.13,
-          usageData: MOCK_USAGE_DATA,
-        });
-      } catch (err: any) {
+        if (isTelegramWebApp()) {
+          const data = await apiService.getBillingStats();
+          setStats(mapBillingStats(data));
+        } else {
+          setStats({
+            currentUsage: 2,
+            totalLimit: Infinity,
+            averagePerDay: 0.13,
+            usageData: MOCK_USAGE_DATA,
+          });
+        }
+      } catch (err) {
         console.error('Ошибка при загрузке данных биллинга:', err);
         setError('Не удалось загрузить данные. Используются примерные значения.');
         setStats({
@@ -83,28 +99,36 @@ export const UsageChartCard: React.FC = () => {
     setError(null);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setStats({
-        currentUsage: 2,
-        totalLimit: Infinity,
-        averagePerDay: 0.13,
-        usageData: MOCK_USAGE_DATA,
-      });
-    } catch (err: any) {
+      if (isTelegramWebApp()) {
+        const data = await apiService.getBillingStats();
+        setStats(mapBillingStats(data));
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setStats({
+          currentUsage: 2,
+          totalLimit: Infinity,
+          averagePerDay: 0.13,
+          usageData: MOCK_USAGE_DATA,
+        });
+      }
+    } catch {
       setError('Не удалось обновить данные');
     } finally {
       setRefreshing(false);
     }
   };
 
-  const isUnlimited = stats.totalLimit === Infinity;
+  const hasHistory = stats.usageData.length > 1;
+  const hasAnyUsage = stats.usageData.length > 0;
 
   return (
     <div className="card-ref p-5 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-[15px] font-medium text-fg-4 mb-1">Использование</h3>
-          <p className="text-sm text-fg-2">Разбивка вашего использования за биллинговый цикл</p>
+          <p className="text-sm text-fg-2">
+            {hasHistory ? 'Разбивка вашего использования за биллинговый цикл' : 'Сводка вашего использования'}
+          </p>
         </div>
         <button
           onClick={handleRefresh}
@@ -121,9 +145,9 @@ export const UsageChartCard: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2" role="alert">
-          <AlertCircle size={16} className="text-yellow-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-yellow-800">{error}</p>
+        <div className="mb-4 p-3 bg-[var(--warning-bg)] border border-[var(--warning-border)] rounded-lg flex items-start gap-2" role="alert">
+          <AlertCircle size={16} className="text-[var(--warning-text)] mt-0.5 shrink-0" />
+          <p className="text-xs text-[var(--warning-text)]">{error}</p>
         </div>
       )}
 
@@ -138,44 +162,51 @@ export const UsageChartCard: React.FC = () => {
       ) : (
         <>
           <div className="h-[200px] w-full mb-8">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.usageData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <XAxis 
-                  dataKey="day" 
-                  tick={{ fontSize: 11, fill: 'var(--fg-2)' }}
-                  tickLine={{ stroke: 'var(--border)' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 11, fill: 'var(--fg-2)' }}
-                  tickLine={{ stroke: 'var(--border)' }}
-                  label={{ value: 'ГБ', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'var(--fg-2)', fontSize: 11 } }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}
-                  formatter={(value: number) => [`${value} ГБ`, 'Использование']}
-                />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {stats.usageData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.value > 0 ? '#998DFF' : '#F0F0F0'} 
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {hasAnyUsage ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.usageData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <XAxis 
+                    dataKey="day" 
+                    tick={{ fontSize: 11, fill: 'var(--fg-2)' }}
+                    tickLine={{ stroke: 'var(--border)' }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11, fill: 'var(--fg-2)' }}
+                    tickLine={{ stroke: 'var(--border)' }}
+                    label={{ value: 'ГБ', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'var(--fg-2)', fontSize: 11 } }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'var(--background)', 
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: 'var(--fg-4)'
+                    }}
+                    formatter={(value: number) => [`${value} ГБ`, 'Использование']}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {stats.usageData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.value > 0 ? 'var(--accent)' : 'var(--bg-2)'} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full bg-bg-2 rounded-lg flex items-center justify-center text-xs text-fg-2">
+                История трафика появится после первых подключений
+              </div>
+            )}
           </div>
           
           <div className="mt-8 space-y-2">
             <UsageItem 
               label="Текущее использование" 
               value={formatGB(stats.currentUsage)} 
-              color="#998DFF" 
+              color="var(--accent)" 
             />
             <UsageItem 
               label="Среднее в день" 
@@ -203,4 +234,3 @@ const UsageItem = ({ label, value, color }: { label: string, value: string, colo
     <span className="text-fg-4 font-semibold">{value}</span>
   </div>
 );
-

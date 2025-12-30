@@ -7,7 +7,7 @@ import prettier from 'eslint-config-prettier';
 
 export default [
   {
-    ignores: ['dist', 'node_modules', 'prettier.config.cjs'],
+    ignores: ['dist', 'node_modules', 'postcss.config.cjs', 'tailwind.config.cjs', 'prettier.config.cjs'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

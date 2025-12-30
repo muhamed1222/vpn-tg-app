@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PLANS } from '../constants';
-import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { apiService } from '../services/apiService';
+import { logger } from '../utils/logger';
+import { PaymentProvider, usePayment } from '../hooks/usePayment';
+import { isTelegramWebApp } from '../utils/telegram';
 
 export const Pay: React.FC = () => {
   const [selectedPlanId, setSelectedPlanId] = useState(PLANS[1].id); // По умолчанию 1 месяц
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
-  const navigate = useNavigate();
+  const { loading, error, handlePay } = usePayment({ allowBrowserFallback: true });
+  const isInTelegram = isTelegramWebApp();
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>(
+    isInTelegram ? 'telegram' : 'yookassa',
+  );
 
   // Загрузка тарифов из API при монтировании
   useEffect(() => {
@@ -17,7 +21,7 @@ export const Pay: React.FC = () => {
       try {
         const tariffs = await apiService.getTariffs();
         // Можно синхронизировать тарифы с API если нужно
-        console.log('Загружены тарифы:', tariffs);
+        logger.debug('Загружены тарифы:', tariffs);
       } catch (error) {
         console.error('Ошибка при загрузке тарифов:', error);
         // В режиме разработки продолжаем работу с локальными планами
@@ -25,128 +29,91 @@ export const Pay: React.FC = () => {
     };
 
     // Загружаем только если в Telegram WebApp
-    if ((window as any).Telegram?.WebApp) {
+    if (isTelegramWebApp()) {
       loadTariffs();
     }
   }, []);
 
-  const handlePay = async () => {
-    setLoading(true);
-    setError(null);
+  const currentPlan = useMemo(
+    () => PLANS.find(p => p.id === selectedPlanId),
+    [selectedPlanId],
+  );
 
-    try {
-      // Создаем заказ через API бота
-      const payment = await apiService.createPayment(selectedPlanId);
-      
-      // Открываем ссылку на оплату
-      if (payment.invoice_link) {
-        // В Telegram WebApp открываем через Telegram
-        if ((window as any).Telegram?.WebApp) {
-          (window as any).Telegram.WebApp.openInvoice(payment.invoice_link, (status: string) => {
-            if (status === 'paid') {
-              // После успешной оплаты переходим на страницу результата
-              navigate(`/result?order_id=${payment.order_id}&status=pending`);
-            } else {
-              setError('Оплата отменена');
-              setLoading(false);
-            }
-          });
-        } else {
-          // В браузере открываем в новой вкладке
-          window.open(payment.invoice_link, '_blank');
-          navigate(`/result?order_id=${payment.order_id}&status=pending`);
-        }
-      } else {
-        throw new Error('Не получена ссылка на оплату');
-      }
-    } catch (error: any) {
-      console.error('Ошибка при создании заказа:', error);
-      setError(error.message || 'Не удалось создать заказ. Попробуйте позже.');
-      setLoading(false);
+  const filteredPlans = useMemo(() => {
+    if (billingCycle === 'monthly') {
+      return PLANS.filter(p => p.durationMonths <= 3);
     }
-  };
-
-  const currentPlan = PLANS.find(p => p.id === selectedPlanId);
+    return PLANS.filter(p => p.durationMonths >= 6);
+  }, [billingCycle]);
   
   // Filtering plans based on toggle if needed, or just showing all
-  const displayPlans = billingCycle === 'annually' 
-    ? PLANS.filter(p => p.durationMonths >= 6) 
-    : PLANS.filter(p => p.durationMonths < 6);
-
   return (
     <div className="max-w-[440px] mx-auto space-y-8 animate-fade">
       <div className="text-center">
-        <span className="text-[11px] font-black text-[#CE3000] uppercase tracking-[0.2em] bg-[#CE3000]/10 px-3 py-1.5 rounded-full mb-4 inline-block">
+        <span className="text-[11px] font-black text-[var(--primary)] uppercase tracking-[0.2em] bg-[var(--primary-soft)] px-3 py-1.5 rounded-full mb-4 inline-block">
           Обновление
         </span>
-        <h1 className="text-4xl font-black tracking-tighter text-[#0A0A0A] mt-2">Обновите ваш тариф</h1>
+        <h1 className="text-4xl font-black tracking-tighter text-fg-4 mt-2">Обновите ваш тариф</h1>
       </div>
 
-      <div className="card-ref shadow-xl shadow-black/[0.03]">
+      <div className="card-ref">
         <div className="p-8">
           {/* Toggle Monthly/Annually (Ref Image 3 style) */}
-          <div className="flex bg-[#F5F5F5] p-1 rounded-xl mb-10">
+          <div className="flex bg-bg-2 p-1 rounded-xl mb-10">
              <button 
               onClick={() => setBillingCycle('monthly')}
-              className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${billingCycle === 'monthly' ? 'bg-white shadow-sm text-[#0A0A0A]' : 'text-[rgba(0,0,0,0.3)] hover:text-[rgba(0,0,0,0.5)]'}`}
+              className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${billingCycle === 'monthly' ? 'bg-[var(--background)] text-fg-4' : 'text-fg-2 hover:text-fg-4'}`}
              >
                Ежемесячно
              </button>
              <button 
               onClick={() => setBillingCycle('annually')}
-              className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${billingCycle === 'annually' ? 'bg-white shadow-sm text-[#0A0A0A]' : 'text-[rgba(0,0,0,0.3)] hover:text-[rgba(0,0,0,0.5)]'}`}
+              className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${billingCycle === 'annually' ? 'bg-[var(--background)] text-fg-4' : 'text-fg-2 hover:text-fg-4'}`}
              >
                Ежегодно
              </button>
           </div>
 
           <div className="text-center mb-10">
-             <p className="text-[11px] text-[rgba(0,0,0,0.3)] font-black uppercase tracking-widest mb-1">В месяц</p>
-             <h2 className="text-6xl font-black tracking-tighter text-[#0A0A0A]">
+             <p className="text-[11px] text-fg-2 font-black uppercase tracking-widest mb-1">В месяц</p>
+             <h2 className="text-6xl font-black tracking-tighter text-fg-4">
                {currentPlan ? Math.round(currentPlan.price / currentPlan.durationMonths) : 0} ₽
              </h2>
-             <p className="text-[14px] text-[rgba(0,0,0,0.4)] mt-3 font-medium">Списание {currentPlan?.price} ₽ каждые {currentPlan?.durationMonths} мес.</p>
+             <p className="text-[14px] text-fg-2 mt-3 font-medium">Списание {currentPlan?.price} ₽ каждые {currentPlan?.durationMonths} мес.</p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-xs text-red-600">{error}</p>
+            <div className="mb-4 p-3 bg-[var(--danger-bg)] border border-[var(--danger-border)] rounded-lg">
+              <p className="text-xs text-[var(--danger-text)]">{error}</p>
             </div>
           )}
 
           <div className="space-y-3">
-             {PLANS.filter(p => {
-               // Фильтруем планы по циклу оплаты
-               if (billingCycle === 'monthly') {
-                 return p.durationMonths <= 3; // До 3 месяцев включительно
-               } else {
-                 return p.durationMonths >= 6; // От 6 месяцев
-               }
-             }).map((plan) => (
+             {filteredPlans.map((plan) => (
                <div 
                 key={plan.id}
                 onClick={() => setSelectedPlanId(plan.id)}
                 className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border-2 transition-all duration-200 group ${
                   selectedPlanId === plan.id 
-                    ? 'border-[#CE3000] bg-[#CE3000]/[0.02]' 
-                    : 'border-[rgba(0,0,0,0.06)] hover:border-[rgba(0,0,0,0.15)] hover:bg-[#FAFAFA]'
+                    ? 'border-[var(--primary)] bg-[var(--primary-soft)]' 
+                    : 'border-border hover:border-[var(--primary)] hover:bg-bg-2'
                 }`}
                >
                  <div className="flex items-center gap-4">
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      selectedPlanId === plan.id ? 'border-[#CE3000] bg-[#CE3000]' : 'border-[rgba(0,0,0,0.15)] group-hover:border-[rgba(0,0,0,0.3)]'
+                      selectedPlanId === plan.id ? 'border-[var(--primary)] bg-[var(--primary)]' : 'border-border group-hover:border-[var(--primary)]'
                     }`}>
-                       {selectedPlanId === plan.id && <div className="w-2 h-2 bg-white rounded-full" />}
-                    </div>
+                    {selectedPlanId === plan.id && <div className="w-2 h-2 bg-[var(--on-primary)] rounded-full" />}
+                  </div>
                     <div>
-                      <div className="text-[14px] font-bold text-[#0A0A0A]">{plan.name}</div>
-                      <div className="text-[12px] text-[rgba(0,0,0,0.4)] font-medium">{plan.description}</div>
+                      <div className="text-[14px] font-bold text-fg-4">{plan.name}</div>
+                      <div className="text-[12px] text-fg-2 font-medium">{plan.description}</div>
                     </div>
                  </div>
                  <div className="text-right">
-                    <div className="text-[14px] font-black text-[#0A0A0A]">{plan.price} ₽</div>
+                    <div className="text-[14px] font-black text-fg-4">{plan.price} ₽</div>
                     {plan.savings && (
-                      <div className="text-[10px] font-black text-[#CE3000] uppercase tracking-wider">Экономия {plan.savings}</div>
+                      <div className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wider">Экономия {plan.savings}</div>
                     )}
                  </div>
                </div>
@@ -154,7 +121,37 @@ export const Pay: React.FC = () => {
           </div>
         </div>
 
-        <div className="card-footer bg-[#FAFAFA] flex flex-col gap-6 p-8">
+        <div className="card-footer bg-bg-2 flex flex-col gap-6 p-8">
+           <div className="space-y-3">
+             <p className="text-[12px] text-fg-2 font-medium">Способ оплаты</p>
+             {isInTelegram ? (
+               <div className="px-4 py-3 rounded-xl border border-border bg-[var(--background)]">
+                 <div className="text-[13px] font-bold text-fg-4">Telegram Stars</div>
+                 <div className="text-[11px] text-fg-2">Оплата внутри Telegram</div>
+               </div>
+             ) : (
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 {[
+                   { id: 'yookassa', label: 'ЮKassa', hint: 'Карты и СБП' },
+                   { id: 'heleket', label: 'Heleket', hint: 'Крипто и карты' },
+                 ].map((provider) => (
+                   <button
+                     key={provider.id}
+                     type="button"
+                     onClick={() => setPaymentProvider(provider.id as PaymentProvider)}
+                     className={`p-4 rounded-xl border text-left transition-all ${
+                       paymentProvider === provider.id
+                         ? 'border-[var(--primary)] bg-[var(--primary-soft)]'
+                         : 'border-border bg-[var(--background)] hover:border-[var(--primary)]'
+                     }`}
+                   >
+                     <div className="text-[13px] font-bold text-fg-4">{provider.label}</div>
+                     <div className="text-[11px] text-fg-2 mt-1">{provider.hint}</div>
+                   </button>
+                 ))}
+               </div>
+             )}
+           </div>
            <div className="space-y-3">
               <FeatureItem text="Безлимитный высокоскоростной трафик" />
               <FeatureItem text="До 5 одновременных устройств" />
@@ -162,9 +159,9 @@ export const Pay: React.FC = () => {
            </div>
            
            <button
-            onClick={handlePay}
+            onClick={() => handlePay(selectedPlanId, paymentProvider)}
             disabled={loading}
-            className="w-full bg-[#CE3000] text-white py-4 rounded-xl font-black text-[15px] hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#CE3000]/20 flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full bg-[var(--primary)] text-white py-4 rounded-xl font-black text-[15px] hover:bg-[var(--primary-hover)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
            >
              {loading ? (
                <>
@@ -174,7 +171,7 @@ export const Pay: React.FC = () => {
              ) : 'Оплатить сейчас'}
            </button>
            
-           <p className="text-[11px] text-[rgba(0,0,0,0.3)] font-medium text-center leading-relaxed">
+           <p className="text-[11px] text-fg-2 font-medium text-center leading-relaxed">
              Нажимая "Обновить сейчас", вы соглашаетесь с нашими Условиями использования. <br />
              Платежи защищены и зашифрованы.
            </p>
@@ -186,9 +183,9 @@ export const Pay: React.FC = () => {
 
 const FeatureItem = ({ text }: { text: string }) => (
   <div className="flex items-center gap-2.5">
-    <div className="w-4 h-4 rounded-full bg-[#CE3000]/10 flex items-center justify-center">
-      <Check size={10} className="text-[#CE3000]" strokeWidth={4} />
+    <div className="w-4 h-4 rounded-full bg-[var(--primary-soft)] flex items-center justify-center">
+      <Check size={10} className="text-[var(--primary)]" strokeWidth={4} />
     </div>
-    <span className="text-[13px] font-bold text-[rgba(0,0,0,0.6)]">{text}</span>
+    <span className="text-[13px] font-bold text-fg-3">{text}</span>
   </div>
 );

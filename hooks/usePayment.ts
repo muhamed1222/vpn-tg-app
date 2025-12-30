@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import { getTelegramWebApp, isTelegramWebApp } from '../utils/telegram';
 
+export type PaymentProvider = 'telegram' | 'yookassa' | 'heleket';
+
 interface UsePaymentOptions {
   allowBrowserFallback?: boolean;
   onPaid?: () => void;
@@ -14,14 +16,31 @@ export const usePayment = (options: UsePaymentOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handlePay = useCallback(async (planId: string) => {
-    if (!isTelegramWebApp() && !allowBrowserFallback) {
+  const handlePay = useCallback(async (planId: string, provider?: PaymentProvider) => {
+    const isInTelegram = isTelegramWebApp();
+    const selectedProvider: PaymentProvider = provider || (isInTelegram ? 'telegram' : 'yookassa');
+
+    if (selectedProvider === 'telegram' && !isInTelegram) {
       setError('Оплата доступна только через Telegram WebApp.');
+      return;
+    }
+
+    if (selectedProvider !== 'telegram' && !allowBrowserFallback) {
+      setError('Оплата через сайт сейчас недоступна.');
       return;
     }
 
     setLoading(true);
     setError(null);
+
+    if (!isInTelegram && selectedProvider !== 'telegram') {
+      const orderId = `${selectedProvider}_${Date.now()}`;
+      const paymentUrl = `https://example.com/checkout/${selectedProvider}?order_id=${orderId}&plan_id=${planId}`;
+      window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+      navigate(`/result?order_id=${orderId}&status=success`);
+      setLoading(false);
+      return;
+    }
 
     try {
       const payment = await apiService.createPayment(planId);
@@ -30,7 +49,7 @@ export const usePayment = (options: UsePaymentOptions = {}) => {
         throw new Error('Ссылка на оплату не получена');
       }
 
-      if (isTelegramWebApp()) {
+      if (isInTelegram) {
         const webApp = getTelegramWebApp();
         if (!webApp?.openInvoice) {
           setError('Не удалось открыть оплату в Telegram.');

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MessageCircle, Mail, ChevronRight, HelpCircle, ArrowRight, Search, X, Clock, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '../App';
+import { MessageCircle, Mail, ChevronRight, HelpCircle, ArrowRight, Search, X, Clock } from 'lucide-react';
 
 interface FAQ {
   id: string;
@@ -100,7 +99,6 @@ const ALL_FAQS: FAQ[] = [
 ];
 
 export const Support: React.FC = () => {
-  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Все');
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
@@ -132,18 +130,6 @@ export const Support: React.FC = () => {
 
   return (
     <div className="max-w-[800px] mx-auto space-y-12 animate-fade">
-      <div className="text-center md:text-left">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#0A0A0A]">Центр поддержки</h1>
-        <p className="text-[rgba(10,10,10,0.5)] font-medium mt-1 text-lg leading-relaxed">
-          Мы ответим на ваши вопросы и поможем с настройкой.
-        </p>
-        {user && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-fg-2">
-            <CheckCircle2 size={14} className="text-green-600" />
-            <span>Вы авторизованы как {user.username}</span>
-          </div>
-        )}
-      </div>
 
       {/* Contact Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -165,29 +151,29 @@ export const Support: React.FC = () => {
       </div>
 
       {/* Support Info */}
-      <div className="card-premium p-6">
+      <div className="card-premium p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-              <Clock size={20} className="text-green-600" />
+            <div className="w-10 h-10 rounded-lg bg-[var(--success-bg)] flex items-center justify-center">
+              <Clock size={20} className="text-[var(--success-text)]" />
             </div>
             <div>
               <p className="text-sm font-semibold text-fg-4">Время работы поддержки</p>
               <p className="text-xs text-fg-2">24/7, без выходных</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
-            <span className="text-xs font-medium text-green-700">Онлайн</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--success-bg)] rounded-full">
+            <div className="w-2 h-2 rounded-full bg-[var(--success-text)] animate-pulse" />
+            <span className="text-xs font-medium text-[var(--success-text)]">Онлайн</span>
           </div>
         </div>
       </div>
 
       {/* FAQ Section */}
-      <div className="card-premium p-8 md:p-10">
+      <div className="card-premium p-8 md:p-5">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold flex items-center gap-3">
-            <HelpCircle size={22} className="text-[#CE3000]" />
+            <HelpCircle size={22} className="text-[var(--primary)]" />
             Частые вопросы
           </h2>
           <span className="text-sm text-fg-2 font-medium">
@@ -204,7 +190,7 @@ export const Support: React.FC = () => {
               placeholder="Поиск по вопросам..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-10 py-3 bg-bg-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#CE3000] focus:border-transparent"
+              className="w-full pl-11 pr-10 py-3 bg-bg-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
             />
             {searchQuery && (
               <button
@@ -229,7 +215,7 @@ export const Support: React.FC = () => {
               }}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                 selectedCategory === category
-                  ? 'bg-[#0A0A0A] text-white shadow-sm'
+                  ? 'bg-[var(--contrast-bg)] text-[var(--contrast-text)]'
                   : 'bg-bg-2 text-fg-3 hover:bg-bg-3 hover:text-fg-4'
               }`}
             >
@@ -251,20 +237,20 @@ export const Support: React.FC = () => {
               <div
                 key={faq.id}
                 className={`border border-border rounded-xl overflow-hidden transition-all ${
-                  openFaqId === faq.id ? 'bg-bg-2' : 'bg-white hover:bg-bg-2'
+                  openFaqId === faq.id ? 'bg-bg-2' : 'bg-[var(--background)] hover:bg-bg-2'
                 }`}
               >
                 <button
                   onClick={() => handleFaqToggle(faq.id)}
-                  className="w-full flex justify-between items-center p-4 text-left focus:outline-none focus:ring-2 focus:ring-[#CE3000] focus:ring-offset-2 rounded-xl"
+                  className="w-full flex justify-between items-center p-4 text-left focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2 rounded-xl"
                 >
                   <div className="flex-1 pr-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#CE3000]/10 text-[#CE3000] font-bold uppercase">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] font-bold uppercase">
                         {faq.category}
                       </span>
                     </div>
-                    <span className="text-[15px] font-bold text-[#0A0A0A] block">
+                    <span className="text-[15px] font-bold text-fg-4 block">
                       {faq.question}
                     </span>
                   </div>
@@ -276,7 +262,7 @@ export const Support: React.FC = () => {
                 </button>
                 {openFaqId === faq.id && (
                   <div className="px-4 pb-4 animate-fade">
-                    <p className="text-[14px] text-[rgba(10,10,10,0.6)] leading-relaxed">
+                    <p className="text-[14px] text-fg-3 leading-relaxed">
                       {faq.answer}
                     </p>
                   </div>
@@ -302,32 +288,32 @@ const ContactCard: React.FC<{
     href={href} 
     target="_blank" 
     rel="noopener noreferrer"
-    className={`p-8 rounded-[28px] flex flex-col gap-6 transition-all group hover:-translate-y-1 border shadow-sm ${
+    className={`p-5 rounded-[28px] flex flex-col gap-6 transition-all group hover:-translate-y-1 border ${
       primary 
-        ? 'bg-[#0A0A0A] text-white border-transparent' 
-        : 'bg-white text-[#0A0A0A] border-[rgba(10,10,10,0.06)]'
+        ? 'bg-[var(--contrast-bg)] text-[var(--contrast-text)] border-transparent' 
+        : 'bg-[var(--background)] text-fg-4 border-border'
     }`}
   >
     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-      primary ? 'bg-white/10 text-white' : 'bg-[rgba(10,10,10,0.03)] text-[#0A0A0A]'
+      primary ? 'bg-[var(--contrast-bg-soft)] text-[var(--contrast-text)]' : 'bg-bg-2 text-fg-4'
     }`}>
       {icon}
     </div>
     <div className="flex justify-between items-end">
       <div className="flex-1">
         <h3 className="text-xl font-bold mb-1">{title}</h3>
-        <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${primary ? 'text-white/40' : 'text-[rgba(10,10,10,0.3)]'}`}>
+        <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${primary ? 'text-[var(--contrast-text-muted)]' : 'text-fg-1'}`}>
           {label}
         </p>
         {description && (
-          <p className={`text-xs ${primary ? 'text-white/60' : 'text-[rgba(10,10,10,0.4)]'}`}>
+          <p className={`text-xs ${primary ? 'text-[var(--contrast-text-muted)]' : 'text-fg-2'}`}>
             {description}
           </p>
         )}
       </div>
       <ArrowRight 
         size={22} 
-        className={`shrink-0 ${primary ? 'text-white/20 group-hover:text-white transition-colors' : 'text-[rgba(10,10,10,0.1)] group-hover:text-[#CE3000] transition-colors'}`} 
+        className={`shrink-0 ${primary ? 'text-[var(--contrast-text-muted)] group-hover:text-[var(--contrast-text)] transition-colors' : 'text-fg-1 group-hover:text-[var(--primary)] transition-colors'}`} 
       />
     </div>
   </a>

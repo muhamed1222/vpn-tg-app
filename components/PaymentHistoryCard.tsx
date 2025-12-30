@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService, PaymentHistoryItem } from '../services/apiService';
+import { isTelegramWebApp } from '../utils/telegram';
 import { AlertCircle, CheckCircle2, XCircle, Clock, Receipt, ExternalLink } from 'lucide-react';
 
 // Моковые данные истории платежей
@@ -8,6 +9,7 @@ const MOCK_PAYMENT_HISTORY: PaymentHistoryItem[] = [
     id: 'pay_1',
     orderId: 'order_12345',
     amount: 899,
+    currency: 'RUB',
     date: Date.now() - 15 * 24 * 60 * 60 * 1000,
     status: 'success',
     planName: '12 Месяцев',
@@ -17,6 +19,7 @@ const MOCK_PAYMENT_HISTORY: PaymentHistoryItem[] = [
     id: 'pay_2',
     orderId: 'order_12344',
     amount: 260,
+    currency: 'RUB',
     date: Date.now() - 120 * 24 * 60 * 60 * 1000,
     status: 'success',
     planName: '3 Месяца',
@@ -26,6 +29,7 @@ const MOCK_PAYMENT_HISTORY: PaymentHistoryItem[] = [
     id: 'pay_3',
     orderId: 'order_12343',
     amount: 99,
+    currency: 'RUB',
     date: Date.now() - 180 * 24 * 60 * 60 * 1000,
     status: 'fail',
     planName: '1 Месяц',
@@ -45,11 +49,11 @@ export const PaymentHistoryCard: React.FC = () => {
       setHistoryError(null);
       
       try {
-        if ((window as any).Telegram?.WebApp) {
+        if (isTelegramWebApp()) {
           try {
             const history = await apiService.getPaymentHistory();
             setPaymentHistory(history);
-          } catch (err: any) {
+          } catch (err) {
             console.error('Ошибка при загрузке истории платежей:', err);
             setPaymentHistory(MOCK_PAYMENT_HISTORY);
             setHistoryError('Не удалось загрузить историю. Показаны примерные данные.');
@@ -58,7 +62,7 @@ export const PaymentHistoryCard: React.FC = () => {
           await new Promise(resolve => setTimeout(resolve, 300));
           setPaymentHistory(MOCK_PAYMENT_HISTORY);
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error('Ошибка при загрузке истории платежей:', err);
         setHistoryError('Не удалось загрузить историю платежей.');
         setPaymentHistory([]);
@@ -80,9 +84,9 @@ export const PaymentHistoryCard: React.FC = () => {
       </div>
 
       {historyError && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2" role="alert">
-          <AlertCircle size={16} className="text-yellow-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-yellow-800">{historyError}</p>
+        <div className="mb-4 p-3 bg-[var(--warning-bg)] border border-[var(--warning-border)] rounded-lg flex items-start gap-2" role="alert">
+          <AlertCircle size={16} className="text-[var(--warning-text)] mt-0.5 shrink-0" />
+          <p className="text-xs text-[var(--warning-text)]">{historyError}</p>
         </div>
       )}
 
@@ -113,11 +117,11 @@ const PaymentItem: React.FC<{ payment: PaymentHistoryItem }> = ({ payment }) => 
   const getStatusIcon = () => {
     switch (payment.status) {
       case 'success':
-        return <CheckCircle2 size={16} className="text-green-600" />;
+        return <CheckCircle2 size={16} className="text-[var(--success-text)]" />;
       case 'fail':
-        return <XCircle size={16} className="text-red-600" />;
+        return <XCircle size={16} className="text-[var(--danger-text)]" />;
       case 'pending':
-        return <Clock size={16} className="text-yellow-600" />;
+        return <Clock size={16} className="text-[var(--warning-text)]" />;
       case 'cancelled':
         return <XCircle size={16} className="text-fg-2" />;
       default:
@@ -143,11 +147,11 @@ const PaymentItem: React.FC<{ payment: PaymentHistoryItem }> = ({ payment }) => 
   const getStatusColor = () => {
     switch (payment.status) {
       case 'success':
-        return 'bg-green-50 border-green-200 text-green-800';
+        return 'bg-[var(--success-bg)] border-[var(--success-border)] text-[var(--success-text)]';
       case 'fail':
-        return 'bg-red-50 border-red-200 text-red-800';
+        return 'bg-[var(--danger-bg)] border-[var(--danger-border)] text-[var(--danger-text)]';
       case 'pending':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+        return 'bg-[var(--warning-bg)] border-[var(--warning-border)] text-[var(--warning-text)]';
       case 'cancelled':
         return 'bg-bg-2 border-border text-fg-2';
       default:
@@ -176,8 +180,13 @@ const PaymentItem: React.FC<{ payment: PaymentHistoryItem }> = ({ payment }) => 
     }
   };
 
+  const formatAmount = (amount: number, currency: PaymentHistoryItem['currency']) => {
+    if (currency === 'XTR') return `${amount} ⭐️`;
+    return `${amount} ₽`;
+  };
+
   return (
-    <div className="flex items-center justify-between p-4 rounded-lg bg-bg-2 border border-border hover:bg-bg-3 transition-all group">
+    <div className="flex items-center justify-between p-4 rounded-lg bg-bg-2 hover:bg-bg-3 transition-all group">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className={`p-2 rounded-lg ${getStatusColor()} shrink-0`}>
           {getStatusIcon()}
@@ -198,13 +207,13 @@ const PaymentItem: React.FC<{ payment: PaymentHistoryItem }> = ({ payment }) => 
       </div>
       <div className="flex items-center gap-3 shrink-0">
         <div className="text-right">
-          <div className="text-sm font-bold text-fg-4">{payment.amount} ₽</div>
+          <div className="text-sm font-bold text-fg-4">{formatAmount(payment.amount, payment.currency)}</div>
           {payment.invoiceLink && (
             <a
               href={payment.invoiceLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-fg-2 hover:text-[#CE3000] transition-colors flex items-center gap-1 mt-0.5"
+              className="text-[10px] text-fg-2 hover:text-[var(--primary)] transition-colors flex items-center gap-1 mt-0.5"
               aria-label="Открыть счет"
             >
               Счет <ExternalLink size={10} />
@@ -215,4 +224,3 @@ const PaymentItem: React.FC<{ payment: PaymentHistoryItem }> = ({ payment }) => 
     </div>
   );
 };
-
