@@ -51,7 +51,9 @@ export interface Tariff {
 
 export interface CreatePaymentResponse {
   order_id: string;
-  invoice_link: string;
+  invoice_link?: string; // Для Telegram Stars
+  confirmation_url?: string; // Для ЮKassa
+  payment_url?: string; // Альтернативное название для URL оплаты
 }
 
 export interface PaymentStatusResponse {
@@ -131,6 +133,64 @@ class ApiService {
       
       checkInitData();
     });
+  }
+
+  /**
+   * Запрос без авторизации (для публичных эндпоинтов, например оплата на сайте)
+   */
+  private async requestWithoutAuth<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const maxRetries = 2;
+    const timeoutMs = 10000;
+    let attempt = 0;
+
+    const shouldRetry = (status: number) => status === 429 || status >= 500;
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    while (true) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+          if (attempt < maxRetries && shouldRetry(response.status)) {
+            attempt += 1;
+            await delay(250 * Math.pow(2, attempt));
+            continue;
+          }
+          throw new Error(error.error || `HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        clearTimeout(timeoutId);
+        const errorName = error instanceof Error ? error.name : '';
+        const isAbort = errorName === 'AbortError';
+        const isNetworkError = error instanceof TypeError;
+
+        if (attempt < maxRetries && (isAbort || isNetworkError)) {
+          attempt += 1;
+          await delay(250 * Math.pow(2, attempt));
+          continue;
+        }
+
+        throw error;
+      }
+    }
   }
 
   private async request<T>(
@@ -217,11 +277,30 @@ class ApiService {
 
   /**
    * Создать заказ на оплату
+   * Для сайта (не в Telegram) работает без initData
    */
-  async createPayment(tariffId: string): Promise<CreatePaymentResponse> {
+  async createPayment(tariffId: string, provider?: 'telegram' | 'yookassa' | 'heleket'): Promise<CreatePaymentResponse> {
+    const isInTelegram = typeof window !== 'undefined' && getTelegramWebApp() !== null;
+    const selectedProvider = provider || (isInTelegram ? 'telegram' : 'yookassa');
+    
+    // Для сайта (не в Telegram) создаем запрос без initData
+    if (!isInTelegram && selectedProvider !== 'telegram') {
+      return this.requestWithoutAuth<CreatePaymentResponse>('/api/payment/create', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          tariff_id: tariffId,
+          provider: selectedProvider,
+        }),
+      });
+    }
+    
+    // Для Telegram используем обычный запрос с initData
     return this.request<CreatePaymentResponse>('/api/payment/create', {
       method: 'POST',
-      body: JSON.stringify({ tariff_id: tariffId }),
+      body: JSON.stringify({ 
+        tariff_id: tariffId,
+        provider: selectedProvider,
+      }),
     });
   }
 

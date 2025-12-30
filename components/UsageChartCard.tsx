@@ -17,17 +17,6 @@ interface BillingStats {
   usageData: UsageData[];
 }
 
-const MOCK_USAGE_DATA: UsageData[] = [
-  { day: 'Dec 14', value: 5 }, { day: 'Dec 15', value: 40 },
-  { day: 'Dec 16', value: 100 }, { day: 'Dec 17', value: 10 },
-  { day: 'Dec 18', value: 0 }, { day: 'Dec 19', value: 5 },
-  { day: 'Dec 20', value: 20 }, { day: 'Dec 21', value: 0 },
-  { day: 'Dec 22', value: 0 }, { day: 'Dec 23', value: 0 },
-  { day: 'Dec 24', value: 0 }, { day: 'Dec 25', value: 0 },
-  { day: 'Dec 26', value: 0 }, { day: 'Dec 27', value: 0 },
-  { day: 'Dec 28', value: 0 },
-];
-
 // Форматирование ГБ
 const formatGB = (gb: number): string => {
   if (gb >= 1000) return `${(gb / 1000).toFixed(1)} ТБ`;
@@ -53,10 +42,10 @@ export const UsageChartCard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<BillingStats>({
-    currentUsage: 2,
+    currentUsage: 0,
     totalLimit: Infinity,
-    averagePerDay: 0.13,
-    usageData: MOCK_USAGE_DATA,
+    averagePerDay: 0,
+    usageData: [],
   });
 
   // Загрузка данных биллинга
@@ -65,26 +54,22 @@ export const UsageChartCard: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      if (!isTelegramWebApp()) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        if (isTelegramWebApp()) {
-          const data = await apiService.getBillingStats();
-          setStats(mapBillingStats(data));
-        } else {
-          setStats({
-            currentUsage: 2,
-            totalLimit: Infinity,
-            averagePerDay: 0.13,
-            usageData: MOCK_USAGE_DATA,
-          });
-        }
+        const data = await apiService.getBillingStats();
+        setStats(mapBillingStats(data));
       } catch (err) {
         console.error('Ошибка при загрузке данных биллинга:', err);
-        setError('Не удалось загрузить данные. Используются примерные значения.');
+        setError('Не удалось загрузить данные.');
         setStats({
-          currentUsage: 2,
+          currentUsage: 0,
           totalLimit: Infinity,
-          averagePerDay: 0.13,
-          usageData: MOCK_USAGE_DATA,
+          averagePerDay: 0,
+          usageData: [],
         });
       } finally {
         setLoading(false);
@@ -95,22 +80,16 @@ export const UsageChartCard: React.FC = () => {
   }, [subscription]);
 
   const handleRefresh = async () => {
+    if (!isTelegramWebApp()) {
+      return;
+    }
+
     setRefreshing(true);
     setError(null);
     
     try {
-      if (isTelegramWebApp()) {
-        const data = await apiService.getBillingStats();
-        setStats(mapBillingStats(data));
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setStats({
-          currentUsage: 2,
-          totalLimit: Infinity,
-          averagePerDay: 0.13,
-          usageData: MOCK_USAGE_DATA,
-        });
-      }
+      const data = await apiService.getBillingStats();
+      setStats(mapBillingStats(data));
     } catch {
       setError('Не удалось обновить данные');
     } finally {

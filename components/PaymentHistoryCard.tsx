@@ -3,40 +3,6 @@ import { apiService, PaymentHistoryItem } from '../services/apiService';
 import { isTelegramWebApp } from '../utils/telegram';
 import { AlertCircle, CheckCircle2, XCircle, Clock, Receipt, ExternalLink } from 'lucide-react';
 
-// Моковые данные истории платежей
-const MOCK_PAYMENT_HISTORY: PaymentHistoryItem[] = [
-  {
-    id: 'pay_1',
-    orderId: 'order_12345',
-    amount: 899,
-    currency: 'RUB',
-    date: Date.now() - 15 * 24 * 60 * 60 * 1000,
-    status: 'success',
-    planName: '12 Месяцев',
-    planId: 'plan_365',
-  },
-  {
-    id: 'pay_2',
-    orderId: 'order_12344',
-    amount: 260,
-    currency: 'RUB',
-    date: Date.now() - 120 * 24 * 60 * 60 * 1000,
-    status: 'success',
-    planName: '3 Месяца',
-    planId: 'plan_90',
-  },
-  {
-    id: 'pay_3',
-    orderId: 'order_12343',
-    amount: 99,
-    currency: 'RUB',
-    date: Date.now() - 180 * 24 * 60 * 60 * 1000,
-    status: 'fail',
-    planName: '1 Месяц',
-    planId: 'plan_30',
-  },
-];
-
 export const PaymentHistoryCard: React.FC = () => {
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -48,20 +14,14 @@ export const PaymentHistoryCard: React.FC = () => {
       setHistoryLoading(true);
       setHistoryError(null);
       
+      if (!isTelegramWebApp()) {
+        setHistoryLoading(false);
+        return;
+      }
+
       try {
-        if (isTelegramWebApp()) {
-          try {
-            const history = await apiService.getPaymentHistory();
-            setPaymentHistory(history);
-          } catch (err) {
-            console.error('Ошибка при загрузке истории платежей:', err);
-            setPaymentHistory(MOCK_PAYMENT_HISTORY);
-            setHistoryError('Не удалось загрузить историю. Показаны примерные данные.');
-          }
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 300));
-          setPaymentHistory(MOCK_PAYMENT_HISTORY);
-        }
+        const history = await apiService.getPaymentHistory();
+        setPaymentHistory(history);
       } catch (err) {
         console.error('Ошибка при загрузке истории платежей:', err);
         setHistoryError('Не удалось загрузить историю платежей.');

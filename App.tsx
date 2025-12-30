@@ -66,23 +66,8 @@ const App: React.FC = () => {
   // Загрузка данных пользователя при монтировании
   useEffect(() => {
     const loadUserData = async () => {
-      // Если не в Telegram WebApp, используем localStorage для разработки
+      // Работаем только в Telegram WebApp
       if (!isTelegramWebApp()) {
-        try {
-          const storedUser = localStorage.getItem('user');
-          if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            setSubscription({
-              status: SubscriptionStatus.ACTIVE,
-              activeUntil: '24.12.2025',
-              planId: 'plan_365'
-            });
-          }
-        } catch (error) {
-          console.error('Ошибка при загрузке пользователя из localStorage:', error);
-          localStorage.removeItem('user');
-        }
         setLoading(false);
         return;
       }
@@ -159,59 +144,11 @@ const App: React.FC = () => {
       } catch (error) {
         console.error('[Login] Ошибка при авторизации через Telegram:', error);
         
-        // Если initData недоступен, используем данные из initDataUnsafe для моковой авторизации
-        const tg = getTelegramWebApp();
-        if (tg?.initDataUnsafe?.user) {
-          logger.debug('[Login] Использование initDataUnsafe для моковой авторизации');
-          const tgUser = tg.initDataUnsafe.user;
-          
-          const userData: User = {
-            id: `usr_${tgUser.id}`,
-            telegramId: tgUser.id,
-            username: tgUser.first_name || `user_${tgUser.id}`,
-            avatar: tgUser.photo_url
-          };
-          
-          setUser(userData);
-          setSubscription({
-            status: SubscriptionStatus.NONE,
-            activeUntil: undefined,
-            planId: undefined
-          });
-          return;
-        }
-        
-        // Если ошибка и мы не в реальном Telegram, переключаемся на режим разработки
-        logger.warn('[Login] Ошибка API, переключаемся на режим разработки');
+        throw error;
       }
     }
-
-    // Для разработки - моковый пользователь
-    logger.debug('[Login] Режим разработки - создание мокового пользователя');
-    try {
-      const mockUser: User = {
-        id: 'usr_1',
-        telegramId: 12345678,
-        username: 'Muhamed Chalemat',
-        avatar: 'https://cdn.visitors.now/users/e2ccd994-4e15-425d-81b4-ad614a9d46dc/avatars/vVBAtzhu4sxfKkQ5_Y7_3.png'
-      };
-      
-      logger.debug('[Login] Установка мокового пользователя:', mockUser);
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      
-      // Устанавливаем моковую подписку
-      const mockSubscription = {
-        status: SubscriptionStatus.ACTIVE,
-        activeUntil: '24.12.2025',
-        planId: 'plan_365'
-      };
-      setSubscription(mockSubscription);
-      logger.debug('[Login] Моковая авторизация завершена');
-    } catch (error) {
-      console.error('[Login] Ошибка при создании мокового пользователя:', error);
-      throw error;
-    }
+    
+    throw new Error('Авторизация доступна только через Telegram WebApp');
   };
 
   const logout = () => {
@@ -222,12 +159,6 @@ const App: React.FC = () => {
 
   const refreshSubscription = async () => {
     if (!isTelegramWebApp()) {
-      // Для разработки - моковые данные
-      setSubscription({
-        status: SubscriptionStatus.ACTIVE,
-        activeUntil: '15.03.2026',
-        planId: 'plan_90'
-      });
       return;
     }
 

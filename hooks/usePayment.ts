@@ -33,23 +33,21 @@ export const usePayment = (options: UsePaymentOptions = {}) => {
     setLoading(true);
     setError(null);
 
-    if (!isInTelegram && selectedProvider !== 'telegram') {
-      const orderId = `${selectedProvider}_${Date.now()}`;
-      const paymentUrl = `https://example.com/checkout/${selectedProvider}?order_id=${orderId}&plan_id=${planId}`;
-      window.open(paymentUrl, '_blank', 'noopener,noreferrer');
-      navigate(`/result?order_id=${orderId}&status=success`);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const payment = await apiService.createPayment(planId);
+      const payment = await apiService.createPayment(planId, selectedProvider);
 
-      if (!payment.invoice_link) {
-        throw new Error('Ссылка на оплату не получена');
-      }
+      // Обработка Telegram Stars
+      if (selectedProvider === 'telegram') {
+        if (!payment.invoice_link) {
+          throw new Error('Ссылка на оплату не получена');
+        }
 
-      if (isInTelegram) {
+        if (!isInTelegram) {
+          setError('Оплата через Telegram Stars доступна только в Telegram WebApp.');
+          setLoading(false);
+          return;
+        }
+
         const webApp = getTelegramWebApp();
         if (!webApp?.openInvoice) {
           setError('Не удалось открыть оплату в Telegram.');
@@ -69,13 +67,21 @@ export const usePayment = (options: UsePaymentOptions = {}) => {
         return;
       }
 
-      if (allowBrowserFallback) {
-        window.open(payment.invoice_link, '_blank');
-        navigate(`/result?order_id=${payment.order_id}&status=pending`);
+      // Обработка ЮKassa и других провайдеров
+      if (selectedProvider === 'yookassa' || selectedProvider === 'heleket') {
+        const paymentUrl = payment.confirmation_url || payment.payment_url || payment.invoice_link;
+        
+        if (!paymentUrl) {
+          throw new Error('Ссылка на оплату не получена');
+        }
+
+        // Редиректим пользователя на страницу оплаты
+        window.location.href = paymentUrl;
+        // navigate не вызываем, так как происходит полный редирект
         return;
       }
 
-      setError('Оплата доступна только через Telegram WebApp.');
+      setError('Неподдерживаемый провайдер оплаты.');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Не удалось создать заказ. Попробуйте позже.';
       setError(message);

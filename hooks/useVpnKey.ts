@@ -3,9 +3,6 @@ import { apiService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import { isTelegramWebApp } from '../utils/telegram';
 
-const FALLBACK_VPN_KEY =
-  'vless://outlivion-mock-key-12345@nodes.space:443?security=reality&sni=google.com&fp=chrome&pbk=xyz#Outlivion-Node';
-
 export const useVpnKey = () => {
   const { subscription } = useAuth();
   const [vpnKey, setVpnKey] = useState<string | null>(null);
@@ -14,15 +11,16 @@ export const useVpnKey = () => {
   const requestIdRef = useRef(0);
 
   const loadVpnKey = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    setError(null);
-
     if (!isTelegramWebApp()) {
-      setVpnKey(FALLBACK_VPN_KEY);
+      setVpnKey(null);
+      setError('VPN ключ доступен только через Telegram WebApp');
       setLoading(false);
       return;
     }
+
+    const requestId = ++requestIdRef.current;
+    setLoading(true);
+    setError(null);
 
     try {
       const user = await apiService.getMe();
