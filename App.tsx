@@ -6,26 +6,15 @@ import { AccountGeneral } from './pages/AccountGeneral';
 import { AccountBilling } from './pages/AccountBilling';
 import { Pay } from './pages/Pay';
 import { Result } from './pages/Result';
+import { PayReturn } from './pages/PayReturn';
 import { Instructions } from './pages/Instructions';
 import { Support } from './pages/Support';
 import { User, Subscription, SubscriptionStatus } from './types';
 import { AuthContext } from './context/AuthContext';
 import { apiService } from './services/apiService';
 import { logger } from './utils/logger';
-import { getTelegramWebApp, isTelegramWebApp } from './utils/telegram';
-
-// Инициализация Telegram WebApp
-const initTelegramWebApp = () => {
-  if (isTelegramWebApp()) {
-    const tg = getTelegramWebApp();
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      return tg;
-    }
-  }
-  return null;
-};
+import { useTelegramAuth } from './hooks/useTelegramAuth';
+import { TelegramRequired } from './components/TelegramRequired';
 
 const mapSubscription = (subscription: {
   isActive: boolean;
@@ -52,50 +41,75 @@ const mapSubscription = (subscription: {
 };
 
 const App: React.FC = () => {
+  // Используем хук для авторизации через Telegram WebApp
+  const { state: authState, user: telegramUser } = useTelegramAuth();
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] = useState<Subscription>({
     status: SubscriptionStatus.NONE
   });
   const [loading, setLoading] = useState(true);
 
-  // Инициализация Telegram WebApp
-  useEffect(() => {
-    initTelegramWebApp();
-  }, []);
+  // Если не в Telegram, показываем экран с требованием открыть через Telegram
+  if (authState === 'not_in_telegram') {
+    // TODO: Заменить на реальную ссылку бота с параметром startapp
+    const botUrl = ''; // Пользователь подставит ссылку
+    return <TelegramRequired botUrl={botUrl || undefined} />;
+  }
 
-  // Загрузка данных пользователя при монтировании
+  // Если ошибка авторизации
+  if (authState === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-[var(--card)] rounded-2xl p-8 shadow-lg">
+            <h1 className="text-2xl font-bold text-[var(--fg)] mb-4">
+              Ошибка авторизации
+            </h1>
+            <p className="text-[var(--fg-2)] mb-8">
+              Не удалось выполнить авторизацию. Пожалуйста, перезагрузите страницу.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium py-3 px-6 rounded-lg transition-colors"
+            >
+              Перезагрузить
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Загрузка данных пользователя после успешной авторизации
   useEffect(() => {
     const loadUserData = async () => {
-      // Работаем только в Telegram WebApp
-      if (!isTelegramWebApp()) {
+      // Ждем завершения авторизации
+      if (authState !== 'authenticated' || !telegramUser) {
+        if (authState === 'loading') {
+          // Все еще загружается
+          return;
+        }
+        // Не авторизован или ошибка
         setLoading(false);
         return;
       }
 
-      // В Telegram WebApp - ждем инициализации и загружаем данные с API
-      // Даем время Telegram WebApp инициализироваться
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
       try {
-        const apiUser = await apiService.getMe();
-        
-        // Преобразуем данные API в формат приложения
+        // Загружаем данные пользователя из API
+        // TODO: Возможно, нужно будет добавить эндпоинт /v1/user/me или использовать данные из telegramUser
+        // Пока используем данные из telegramUser
         const userData: User = {
-          id: `usr_${apiUser.id}`,
-          telegramId: apiUser.id,
-          username: apiUser.firstName,
+          id: `usr_${telegramUser.tgId}`,
+          telegramId: telegramUser.tgId,
+          username: telegramUser.firstName || telegramUser.username || `User ${telegramUser.tgId}`,
           avatar: undefined
         };
 
-        // Получаем аватар из Telegram WebApp если доступен
-        const tg = getTelegramWebApp();
-        if (tg?.initDataUnsafe?.user?.photo_url) {
-          userData.avatar = tg.initDataUnsafe.user.photo_url;
-        }
-
         setUser(userData);
 
-        setSubscription(mapSubscription(apiUser.subscription));
+        // TODO: Загрузить подписку из API, когда будет соответствующий эндпоинт
+        // Пока оставляем пустую подписку
+        setSubscription({ status: SubscriptionStatus.NONE });
       } catch (error) {
         console.error('Ошибка при загрузке данных пользователя:', error);
         // В случае ошибки не блокируем приложение
@@ -105,77 +119,54 @@ const App: React.FC = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [authState, telegramUser]);
 
   const login = async () => {
-    logger.debug('[Login] Начало авторизации');
-    const isInTelegram = isTelegramWebApp();
-    logger.debug('[Login] isTelegramWebApp:', isInTelegram);
-    
-    // В Telegram WebApp авторизация происходит автоматически
-    if (isInTelegram) {
-      // Даем время Telegram WebApp инициализироваться
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      try {
-        logger.debug('[Login] Загрузка данных из API...');
-        // Пытаемся загрузить данные пользователя из API
-        const apiUser = await apiService.getMe();
-        logger.debug('[Login] Данные получены:', apiUser);
-        
-        const userData: User = {
-          id: `usr_${apiUser.id}`,
-          telegramId: apiUser.id,
-          username: apiUser.firstName,
-          avatar: undefined
-        };
-
-        const tg = getTelegramWebApp();
-        if (tg?.initDataUnsafe?.user?.photo_url) {
-          userData.avatar = tg.initDataUnsafe.user.photo_url;
-        }
-
-        logger.debug('[Login] Установка пользователя:', userData);
-        setUser(userData);
-
-        setSubscription(mapSubscription(apiUser.subscription));
-        logger.debug('[Login] Авторизация завершена успешно');
-        return;
-      } catch (error) {
-        console.error('[Login] Ошибка при авторизации через Telegram:', error);
-        
-        throw error;
-      }
-    }
-    
-    throw new Error('Авторизация доступна только через Telegram WebApp');
+    logger.debug('[Login] Авторизация уже выполнена через Telegram WebApp');
+    // Авторизация происходит автоматически через useTelegramAuth
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
     setSubscription({ status: SubscriptionStatus.NONE });
+    // TODO: Возможно, нужно будет вызвать API для выхода
+    // Пока просто перезагружаем страницу
+    window.location.reload();
   };
 
   const refreshSubscription = async () => {
-    if (!isTelegramWebApp()) {
+    if (authState !== 'authenticated') {
       return;
     }
 
     try {
-      const apiUser = await apiService.getMe();
-      setSubscription(mapSubscription(apiUser.subscription));
+      // TODO: Загрузить подписку из API, когда будет соответствующий эндпоинт
+      // const apiUser = await apiService.getMe();
+      // setSubscription(mapSubscription(apiUser.subscription));
     } catch (error) {
       console.error('Ошибка при обновлении подписки:', error);
     }
   };
 
-  if (loading) {
+  if (authState === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm text-fg-2">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Если авторизация прошла, но пользователь еще не загружен
+  if (authState === 'authenticated' && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-fg-2">Загрузка данных пользователя...</p>
         </div>
       </div>
     );
@@ -191,6 +182,7 @@ const App: React.FC = () => {
               <Route path="/account" element={<AccountGeneral />} />
               <Route path="/account/billing" element={<AccountBilling />} />
               <Route path="/pay" element={<Pay />} />
+              <Route path="/pay/return" element={<PayReturn />} />
               <Route path="/result" element={<Result />} />
               <Route path="/instructions" element={<Instructions />} />
               <Route path="/support" element={<Support />} />

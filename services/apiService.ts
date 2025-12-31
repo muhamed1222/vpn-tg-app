@@ -2,23 +2,21 @@
  * Сервис для работы с API VPN бота
  */
 import { logger } from '../utils/logger';
-import { getTelegramWebApp } from '../utils/telegram';
 
-// API URL для тестового бота
-// В development режиме используем localhost, в production - продакшн URL
+// API URL для нового outlivion-api
 const getApiBaseUrl = () => {
   // Проверяем переменную окружения
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   
-  // В development режиме используем localhost
-  if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
-    return 'http://localhost:3000';
+  // В development режиме можно использовать localhost (если нужно)
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_LOCAL_API === 'true') {
+    return 'http://localhost:3001';
   }
   
   // В production используем продакшн URL
-  return 'https://vpn.outlivion.space';
+  return 'https://api.outlivion.space';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -83,58 +81,6 @@ export interface BillingStatsResponse {
 }
 
 class ApiService {
-  private getInitData(): string | null {
-    // Получаем initData из Telegram WebApp
-    if (typeof window !== 'undefined') {
-      const webApp = getTelegramWebApp();
-      if (webApp) {
-        
-        // Проверяем, что WebApp готов
-        if (webApp.initData && typeof webApp.initData === 'string' && webApp.initData.length > 0) {
-          logger.debug('[ApiService] initData найден, длина:', webApp.initData.length);
-          return webApp.initData;
-        }
-        
-        // Если initData пустой, но WebApp существует, возможно он еще загружается
-        logger.debug('[ApiService] WebApp существует, но initData пустой или не готов');
-        logger.debug('[ApiService] WebApp состояние:', {
-          version: webApp.version,
-          platform: webApp.platform,
-          initData: webApp.initData ? 'есть (пустой)' : 'нет',
-          initDataUnsafe: webApp.initDataUnsafe ? 'есть' : 'нет'
-        });
-      } else {
-        logger.debug('[ApiService] Telegram.WebApp не найден');
-      }
-    }
-    return null;
-  }
-  
-  private waitForInitData(maxWait = 3000): Promise<string | null> {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      
-      const checkInitData = () => {
-        const initData = this.getInitData();
-        if (initData && initData.length > 0) {
-          logger.debug('[ApiService] initData получен');
-          resolve(initData);
-          return;
-        }
-        
-        if (Date.now() - startTime >= maxWait) {
-          logger.warn('[ApiService] Таймаут ожидания initData');
-          resolve(null);
-          return;
-        }
-        
-        setTimeout(checkInitData, 100);
-      };
-      
-      checkInitData();
-    });
-  }
-
   /**
    * Запрос без авторизации (для публичных эндпоинтов, например оплата на сайте)
    */
@@ -157,6 +103,7 @@ class ApiService {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           ...options,
           signal: controller.signal,
+          credentials: 'include', // withCredentials: true
           headers: {
             'Content-Type': 'application/json',
             ...options.headers,
@@ -197,18 +144,7 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    // Ждем инициализации initData (максимум 2 секунды)
-    let initData = this.getInitData();
-    
-    if (!initData) {
-      logger.debug('[ApiService] initData не найден, ожидание инициализации...');
-      initData = await this.waitForInitData(2000);
-    }
-    
-    if (!initData) {
-      throw new Error('Telegram WebApp не инициализирован. Убедитесь, что вы открыли сайт через Telegram бота.');
-    }
-
+    // Авторизация теперь через cookie (установленная при авторизации через /v1/auth/telegram)
     const maxRetries = 2;
     const timeoutMs = 10000;
     let attempt = 0;
@@ -224,9 +160,9 @@ class ApiService {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           ...options,
           signal: controller.signal,
+          credentials: 'include', // withCredentials: true (для отправки cookie)
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': initData,
             ...options.headers,
           },
         });
@@ -278,30 +214,45 @@ class ApiService {
   /**
    * Создать заказ на оплату
    * Для сайта (не в Telegram) работает без initData
+   * Для YooKassa использует новый API (api.outlivion.space)
+   * @param tariffId - ID плана (planId)
+   * @param provider - Провайдер оплаты
+   * @param userRef - Опциональный идентификатор пользователя
    */
-  async createPayment(tariffId: string, provider?: 'telegram' | 'yookassa' | 'heleket'): Promise<CreatePaymentResponse> {
-    const isInTelegram = typeof window !== 'undefined' && getTelegramWebApp() !== null;
-    const selectedProvider = provider || (isInTelegram ? 'telegram' : 'yookassa');
+  async createPayment(tariffId: string, provider?: 'telegram' | 'yookassa' | 'heleket', userRef?: string): Promise<CreatePaymentResponse> {
+    const selectedProvider = provider || 'yookassa';
     
-    // Для сайта (не в Telegram) создаем запрос без initData
-    if (!isInTelegram && selectedProvider !== 'telegram') {
-      return this.requestWithoutAuth<CreatePaymentResponse>('/api/payment/create', {
+    // Используем новый API (api.outlivion.space) для создания заказа
+    try {
+      const response = await fetch(`${API_BASE_URL}/v1/orders/create`, {
         method: 'POST',
-        body: JSON.stringify({ 
-          tariff_id: tariffId,
-          provider: selectedProvider,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // withCredentials: true (для отправки cookie с JWT)
+        body: JSON.stringify({
+          planId: tariffId,
+          // userRef теперь берется из cookie (авторизованный пользователь)
         }),
       });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || error.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      // Преобразуем ответ нового API в формат, ожидаемый фронтендом
+      // ВАЖНО: order_id сохраняется в localStorage перед редиректом на оплату
+      return {
+        order_id: data.orderId, // Используется для сохранения в localStorage
+        payment_url: data.paymentUrl,
+        confirmation_url: data.paymentUrl,
+      };
+    } catch (error) {
+      logger.error('Ошибка при создании заказа через новый API:', error);
+      throw error;
     }
-    
-    // Для Telegram используем обычный запрос с initData
-    return this.request<CreatePaymentResponse>('/api/payment/create', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        tariff_id: tariffId,
-        provider: selectedProvider,
-      }),
-    });
   }
 
   /**

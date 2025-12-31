@@ -11,7 +11,7 @@ interface UsePaymentOptions {
 }
 
 export const usePayment = (options: UsePaymentOptions = {}) => {
-  const { allowBrowserFallback = false, onPaid } = options;
+  const { allowBrowserFallback = false, onPaid, userRef } = options;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export const usePayment = (options: UsePaymentOptions = {}) => {
     setError(null);
 
     try {
-      const payment = await apiService.createPayment(planId, selectedProvider);
+      const payment = await apiService.createPayment(planId, selectedProvider, userRef);
 
       // Обработка Telegram Stars
       if (selectedProvider === 'telegram') {
@@ -73,6 +73,12 @@ export const usePayment = (options: UsePaymentOptions = {}) => {
         
         if (!paymentUrl) {
           throw new Error('Ссылка на оплату не получена');
+        }
+
+        // Сохраняем orderId в localStorage для страницы возврата
+        // Используем "lastOrderId" как указано в требованиях
+        if (payment.order_id) {
+          localStorage.setItem('lastOrderId', payment.order_id);
         }
 
         // Редиректим пользователя на страницу оплаты

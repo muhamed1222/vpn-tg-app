@@ -5,11 +5,15 @@ import { apiService } from '../services/apiService';
 import { logger } from '../utils/logger';
 import { PaymentProvider, usePayment } from '../hooks/usePayment';
 import { isTelegramWebApp } from '../utils/telegram';
+import { useAuth } from '../context/AuthContext';
 
 export const Pay: React.FC = () => {
   const [selectedPlanId, setSelectedPlanId] = useState(PLANS[1].id); // По умолчанию 1 месяц
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
-  const { loading, error, handlePay } = usePayment({ allowBrowserFallback: true });
+  const { user } = useAuth();
+  // Передаем userRef если пользователь авторизован (telegramId или id)
+  const userRef = user?.telegramId ? `tg_${user.telegramId}` : user?.id || undefined;
+  const { loading, error, handlePay } = usePayment({ allowBrowserFallback: true, userRef });
   const isInTelegram = isTelegramWebApp();
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>(
     isInTelegram ? 'telegram' : 'yookassa',

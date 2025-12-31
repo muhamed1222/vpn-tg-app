@@ -20,6 +20,14 @@ export interface TelegramWebApp {
   openInvoice?: (invoice: string, callback: (status: string) => void) => void;
 }
 
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: TelegramWebApp;
+    };
+  }
+}
+
 interface TelegramWindow extends Window {
   Telegram?: {
     WebApp?: TelegramWebApp;
