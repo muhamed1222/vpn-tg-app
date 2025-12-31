@@ -284,6 +284,7 @@ export const PayReturn: React.FC = () => {
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
 };
 
