@@ -131,9 +131,8 @@ const App: React.FC = () => {
   const renderContent = () => {
     // Если не в Telegram, показываем экран с требованием открыть через Telegram
     if (authState === 'not_in_telegram') {
-      // TODO: Заменить на реальную ссылку бота с параметром startapp
-      const botUrl = ''; // Пользователь подставит ссылку
-      return <TelegramRequired botUrl={botUrl || undefined} />;
+      const botUrl = 'https://t.me/outlivion_bot?start=login'; // Ссылка на вашего бота
+      return <TelegramRequired botUrl={botUrl} />;
     }
 
     // Если ошибка авторизации
