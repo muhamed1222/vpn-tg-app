@@ -49,55 +49,23 @@ const App: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Если не в Telegram, показываем экран с требованием открыть через Telegram
-  if (authState === 'not_in_telegram') {
-    // TODO: Заменить на реальную ссылку бота с параметром startapp
-    const botUrl = ''; // Пользователь подставит ссылку
-    return <TelegramRequired botUrl={botUrl || undefined} />;
-  }
-
-  // Если ошибка авторизации
-  if (authState === 'error') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
-        <div className="max-w-md w-full text-center">
-          <div className="bg-[var(--card)] rounded-2xl p-8 shadow-lg">
-            <h1 className="text-2xl font-bold text-[var(--fg)] mb-4">
-              Ошибка авторизации
-            </h1>
-            <p className="text-[var(--fg-2)] mb-8">
-              Не удалось выполнить авторизацию. Пожалуйста, перезагрузите страницу.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium py-3 px-6 rounded-lg transition-colors"
-            >
-              Перезагрузить
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Загрузка данных пользователя после успешной авторизации
   useEffect(() => {
-    const loadUserData = async () => {
-      // Ждем завершения авторизации
-      if (authState !== 'authenticated' || !telegramUser) {
-        if (authState === 'loading') {
-          // Все еще загружается
-          return;
-        }
-        // Не авторизован или ошибка
-        setLoading(false);
-        return;
-      }
+    // Если авторизация еще не завершена, не делаем ничего
+    if (authState === 'loading') {
+      return;
+    }
 
+    // Если не авторизован или ошибка, завершаем загрузку
+    if (authState !== 'authenticated' || !telegramUser) {
+      setLoading(false);
+      return;
+    }
+
+    // Авторизация прошла успешно, загружаем данные пользователя
+    const loadUserData = async () => {
       try {
-        // Загружаем данные пользователя из API
-        // TODO: Возможно, нужно будет добавить эндпоинт /v1/user/me или использовать данные из telegramUser
-        // Пока используем данные из telegramUser
+        // Используем данные из telegramUser (получены при авторизации)
         const userData: User = {
           id: `usr_${telegramUser.tgId}`,
           telegramId: telegramUser.tgId,
@@ -110,10 +78,9 @@ const App: React.FC = () => {
         // TODO: Загрузить подписку из API, когда будет соответствующий эндпоинт
         // Пока оставляем пустую подписку
         setSubscription({ status: SubscriptionStatus.NONE });
+        setLoading(false);
       } catch (error) {
         console.error('Ошибка при загрузке данных пользователя:', error);
-        // В случае ошибки не блокируем приложение
-      } finally {
         setLoading(false);
       }
     };
@@ -149,6 +116,41 @@ const App: React.FC = () => {
     }
   };
 
+  // Рендерим разные экраны в зависимости от состояния
+  // ВСЕ return'ы должны быть после всех хуков (правило хуков React)
+  
+  // Если не в Telegram, показываем экран с требованием открыть через Telegram
+  if (authState === 'not_in_telegram') {
+    // TODO: Заменить на реальную ссылку бота с параметром startapp
+    const botUrl = ''; // Пользователь подставит ссылку
+    return <TelegramRequired botUrl={botUrl || undefined} />;
+  }
+
+  // Если ошибка авторизации
+  if (authState === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-[var(--card)] rounded-2xl p-8 shadow-lg">
+            <h1 className="text-2xl font-bold text-[var(--fg)] mb-4">
+              Ошибка авторизации
+            </h1>
+            <p className="text-[var(--fg-2)] mb-8">
+              Не удалось выполнить авторизацию. Пожалуйста, перезагрузите страницу.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium py-3 px-6 rounded-lg transition-colors"
+            >
+              Перезагрузить
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Если загрузка авторизации
   if (authState === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
@@ -172,6 +174,7 @@ const App: React.FC = () => {
     );
   }
 
+  // Основной рендер приложения
   return (
     <AuthContext.Provider value={{ user, subscription, loading, login, logout, refreshSubscription }}>
       <Router>
