@@ -55,7 +55,7 @@ export const AVAILABLE_LOCATIONS = [
   { name: 'Турция', emoji: '🇹🇷', city: 'Стамбул', soon: true },
 ];
 
-export const SUPPORT_URL = "https://t.me/chalemat";
+export const SUPPORT_URL = "https://t.me/outlivion_supportbot";
 
 export const PLATFORMS = [
   { id: 'ios', name: 'iOS' },
