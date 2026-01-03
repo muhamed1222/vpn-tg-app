@@ -7,13 +7,14 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       server: {
-        port: 5173, // Стандартный порт Vite (не конфликтует с ботом на 3000)
+        port: 5173,
         host: '0.0.0.0',
         open: false,
       },
       plugins: [react(), tailwindcss()],
       define: {
-        'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'http://localhost:3000')
+        // Устанавливаем правильный URL API по умолчанию
+        'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'https://api.outlivion.space')
       },
       resolve: {
         alias: {
@@ -26,10 +27,5 @@ export default defineConfig(({ mode }) => {
       },
       root: '.',
       clearScreen: false,
-      test: {
-        environment: 'jsdom',
-        setupFiles: './test/setup.ts',
-        globals: true,
-      },
     };
 });
