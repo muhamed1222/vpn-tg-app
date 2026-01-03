@@ -116,6 +116,19 @@ const App: React.FC = () => {
 
   // Используем useCallback для функций, чтобы они не менялись между рендерами
   const login = useCallback(async () => {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      logger.debug('[Login] Режим разработки - создание мокового пользователя');
+      const mockUser = {
+        id: 'usr_1',
+        telegramId: 12345678,
+        username: 'Muhamed Chalemat',
+      };
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      // Перезагружаем для подхвата пользователя
+      window.location.reload();
+      return;
+    }
     logger.debug('[Login] Авторизация уже выполнена через Telegram WebApp');
     // Авторизация происходит автоматически через useTelegramAuth
   }, []);
@@ -174,7 +187,9 @@ const App: React.FC = () => {
   // Определяем, какой контент показывать (после всех хуков)
   const renderContent = () => {
     // Если не в Telegram, показываем экран с требованием открыть через Telegram
-    if (authState === 'not_in_telegram') {
+    // На localhost разрешаем продолжить без Telegram для отладки
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (authState === 'not_in_telegram' && !isLocal) {
       const botUrl = 'https://t.me/outlivion_bot?start=login'; // Ссылка на вашего основного бота
       return <TelegramRequired botUrl={botUrl} />;
     }

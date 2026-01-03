@@ -27,6 +27,28 @@ export function useTelegramAuth(): UseTelegramAuthResult {
   useEffect(() => {
     const authenticate = async () => {
       try {
+        // 0. Проверяем локальную моковую сессию (для разработки)
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const savedUser = localStorage.getItem('user');
+        
+        if (isLocal && savedUser) {
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            if (parsedUser.telegramId) {
+              console.log('[useTelegramAuth] Local session found:', parsedUser);
+              setUser({
+                tgId: parsedUser.telegramId,
+                username: parsedUser.username,
+                firstName: parsedUser.username.split(' ')[0],
+              });
+              setState('authenticated');
+              return;
+            }
+          } catch (e) {
+            console.error('[useTelegramAuth] Failed to parse saved user');
+          }
+        }
+
         // 1. Проверяем наличие токена в URL (вход по ссылке из бота)
         const hash = window.location.hash;
         const search = window.location.search;

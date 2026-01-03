@@ -17,7 +17,7 @@ export const TelegramRequired: React.FC<TelegramRequiredProps> = ({ botUrl = 'ht
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
       <div className="max-w-md w-full text-center">
-        <div className="bg-[var(--card)] rounded-2xl p-8 shadow-lg">
+        <div className="bg-[var(--card)] rounded-2xl p-8">
           <div className="mb-6">
             <svg
               className="w-20 h-20 mx-auto text-[var(--primary)]"

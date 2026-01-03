@@ -17,21 +17,43 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>(
     isInTelegram ? 'telegram' : 'yookassa',
   );
+  const [hasPurchased, setHasPurchased] = useState<boolean | null>(null);
 
-  // Загрузка тарифов из API при монтировании
+  // Загрузка тарифов и истории платежей из API при монтировании
   useEffect(() => {
-    const loadTariffs = async () => {
+    const loadData = async () => {
       try {
-        await apiService.getTariffs();
+        const history = await apiService.getPaymentHistory();
+        
+        // Проверяем, были ли успешные платежи
+        const hasSuccess = history.some(p => p.status === 'success');
+        setHasPurchased(hasSuccess);
       } catch (error) {
-        console.error('Ошибка при загрузке тарифов:', error);
+        console.error('Ошибка при загрузке данных модального окна:', error);
+        // В случае ошибки по умолчанию считаем, что покупка могла быть, чтобы не показывать тест зря
+        setHasPurchased(true);
       }
     };
 
-    if (isOpen && isTelegramWebApp()) {
-      loadTariffs();
+    if (isOpen) {
+      loadData();
     }
   }, [isOpen]);
+
+  // Фильтруем планы: убираем тестовый, если уже была покупка
+  const visiblePlans = PLANS.filter(plan => {
+    if (plan.id === 'plan_7' && hasPurchased === true) {
+      return false;
+    }
+    return true;
+  });
+
+  // Если выбранный план исчез из списка (например, после загрузки истории), выбираем первый доступный
+  useEffect(() => {
+    if (hasPurchased !== null && !visiblePlans.find(p => p.id === selectedPlanId)) {
+      setSelectedPlanId(visiblePlans[0]?.id || PLANS[1].id);
+    }
+  }, [hasPurchased, visiblePlans, selectedPlanId]);
 
   // Закрытие по Escape
   useEffect(() => {
@@ -95,7 +117,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({ 
 
           {/* Plans */}
           <div className="space-y-3">
-            {PLANS.map((plan) => (
+            {visiblePlans.map((plan) => (
               <div 
                 key={plan.id}
                 onClick={() => setSelectedPlanId(plan.id)}

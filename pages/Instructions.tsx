@@ -130,7 +130,7 @@ export const Instructions: React.FC = () => {
                   href={downloadLink.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 bg-[var(--contrast-bg)] text-[var(--contrast-text)] px-6 py-3 rounded-xl text-[13px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] hover:bg-[var(--contrast-bg-hover)] w-fit"
+                  className="flex items-center justify-center gap-2.5 bg-[var(--contrast-bg)] text-[var(--contrast-text)] px-6 py-3 rounded-xl text-[13px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] hover:bg-[var(--contrast-bg-hover)] w-full sm:w-fit"
                 >
                   <Download size={16} /> Скачать из {downloadLink.name}
                   <ExternalLink size={14} />
@@ -138,7 +138,7 @@ export const Instructions: React.FC = () => {
               ) : (
                 <button 
                   disabled
-                  className="flex items-center gap-2.5 bg-[var(--contrast-bg)] text-[var(--contrast-text)] px-6 py-3 rounded-xl text-[13px] font-bold cursor-not-allowed opacity-50"
+                  className="flex items-center justify-center gap-2.5 bg-[var(--contrast-bg)] text-[var(--contrast-text)] px-6 py-3 rounded-xl text-[13px] font-bold cursor-not-allowed opacity-50 w-full sm:w-fit"
                 >
                   <Download size={16} /> Скачать приложение
                 </button>
@@ -203,14 +203,14 @@ export const Instructions: React.FC = () => {
 };
 
 const Step: React.FC<{ number: string; title: string; description: string; action?: React.ReactNode }> = ({ number, title, description, action }) => (
-  <div className="flex gap-5 group">
-    <div className="w-10 h-10 rounded-full bg-bg-2 border border-border text-fg-4 flex items-center justify-center text-[15px] font-black shrink-0 transition-colors group-hover:bg-[var(--contrast-bg)] group-hover:text-[var(--contrast-text)] group-hover:border-[var(--contrast-bg)]" style={{ borderColor: 'var(--border)' }}>
+  <div className="flex gap-4 md:gap-5 group">
+    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-bg-2 border border-border text-fg-4 flex items-center justify-center text-[13px] md:text-[15px] font-black shrink-0 transition-colors group-hover:bg-[var(--contrast-bg)] group-hover:text-[var(--contrast-text)] group-hover:border-[var(--contrast-bg)]" style={{ borderColor: 'var(--border)' }}>
       {number}
     </div>
-    <div className="flex-1 space-y-5">
+    <div className="flex-1 space-y-4 md:space-y-5 min-w-0">
       <div>
-        <h4 className="text-lg font-bold text-fg-4 tracking-tight">{title}</h4>
-        <p className="text-[15px] text-fg-2 leading-relaxed mt-1">{description}</p>
+        <h4 className="text-base md:text-lg font-bold text-fg-4 tracking-tight">{title}</h4>
+        <p className="text-sm md:text-[15px] text-fg-2 leading-relaxed mt-1">{description}</p>
       </div>
       {action && <div className="animate-fade">{action}</div>}
     </div>

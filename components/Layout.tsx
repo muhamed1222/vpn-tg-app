@@ -56,7 +56,7 @@ export const Layout: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-[var(--background)]">
       {/* Header */}
       <header className="w-full h-14 border-b border-border sticky top-0 bg-[var(--background)]/80 backdrop-blur-md z-50 flex justify-center items-center" style={{ borderBottomColor: 'var(--border)' }}>
-        <div className="w-[788px] h-full px-5 flex items-center justify-between">
+        <div className="w-full max-w-[788px] h-full px-4 md:px-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/account"><Logo className="w-6 h-6 text-fg-4" /></Link>
             <div className="flex items-center gap-2 text-[13px] font-medium text-fg-2">
@@ -98,29 +98,35 @@ export const Layout: React.FC = () => {
           Вы офлайн. Некоторые действия могут быть недоступны.
         </div>
       )}
-      <div className="w-full pt-16 pb-2 flex flex-col items-center gap-1">
-        <h1 className="text-2xl font-medium tracking-tight text-fg-4">
+      <div className="w-full pt-8 md:pt-16 pb-2 flex flex-col items-center gap-1 text-center px-4">
+        <h1 className="text-xl md:text-2xl font-medium tracking-tight text-fg-4">
           {pageInfo.title}
         </h1>
-        <p className="text-sm text-fg-2">{pageInfo.description}</p>
+        <p className="text-xs md:text-sm text-fg-2">{pageInfo.description}</p>
       </div>
 
       {/* Main Grid */}
-      <div className="max-w-[788px] w-full mx-auto px-[20px] py-10 flex flex-col md:flex-row gap-7 flex-1">
-        <aside className="w-full md:w-56 space-y-1">
-          {/* Account Section */}
-          <SidebarLink 
-            to="/account" 
-            label="Аккаунт"
-            icon={<User size={18} />}
-            active={pathname === '/account' || pathname.startsWith('/account')}
-          />
-          
-          {/* Divider */}
-          <div className="h-px bg-border my-4 mx-3" />
-          
-          {/* Help Section */}
-          <div className="space-y-1">
+      <div className="w-full max-w-[788px] mx-auto px-4 md:px-5 py-6 md:py-10 flex flex-col md:flex-row gap-6 md:gap-7 flex-1">
+        <aside className="w-full md:w-56 shrink-0">
+          <div className="flex md:flex-col overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 gap-1 md:gap-1 tabs-scrollbar">
+            {/* Account Section */}
+            <SidebarLink 
+              to="/account" 
+              label="Аккаунт"
+              icon={<User size={18} />}
+              active={pathname === '/account' || (pathname.startsWith('/account') && pathname !== '/account/billing')}
+            />
+            
+            <SidebarLink 
+              to="/account/billing" 
+              label="Биллинг"
+              icon={<CreditCard size={18} />}
+              active={pathname === '/account/billing'}
+            />
+
+            <div className="hidden md:block h-px bg-border my-4 mx-3" />
+            
+            {/* Help Section */}
             {helpItems.map((item) => (
               <SidebarLink 
                 key={item.to}
@@ -130,25 +136,25 @@ export const Layout: React.FC = () => {
                 active={pathname === item.to}
               />
             ))}
-          </div>
 
-          {/* Logout */}
-          {user && (
-            <>
-              <div className="h-px bg-border my-4 mx-3" />
-              <button
-                onClick={logout}
-                className="sidebar-link w-full text-left"
-                aria-label="Выйти из аккаунта"
-              >
-                <LogOut size={18} />
-                <span>Выйти</span>
-              </button>
-            </>
-          )}
+            {/* Logout - desktop only in sidebar */}
+            {user && (
+              <div className="hidden md:block">
+                <div className="h-px bg-border my-4 mx-3" />
+                <button
+                  onClick={logout}
+                  className="sidebar-link w-full text-left"
+                  aria-label="Выйти из аккаунта"
+                >
+                  <LogOut size={18} />
+                  <span>Выйти</span>
+                </button>
+              </div>
+            )}
+          </div>
         </aside>
 
-        <main className="flex-1 max-w-[768px]" style={{ width: '496px' }}>
+        <main className="flex-1 w-full max-w-[768px] md:w-[496px]">
           <VpnConnectionCard />
           {showBillingBlocks && (
             <>
@@ -181,7 +187,7 @@ const SidebarLink = ({
 }) => (
   <Link 
     to={to} 
-    className={`sidebar-link group relative ${
+    className={`sidebar-link group relative shrink-0 ${
       active ? 'active' : ''
     }`}
     data-active={active}
@@ -194,9 +200,9 @@ const SidebarLink = ({
         {icon}
       </span>
     )}
-    <span className="flex-1 font-medium">{label}</span>
+    <span className="flex-1 font-medium whitespace-nowrap">{label}</span>
     {active && (
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[var(--primary)] rounded-r-full" 
+      <div className="absolute left-0 md:left-0 bottom-0 md:top-1/2 md:-translate-y-1/2 w-full md:w-1 h-0.5 md:h-6 bg-[var(--primary)] rounded-t-full md:rounded-r-full" 
            aria-hidden="true" />
     )}
   </Link>

@@ -170,8 +170,8 @@ export const Support: React.FC = () => {
       </div>
 
       {/* FAQ Section */}
-      <div className="card-premium p-8 md:p-5">
-        <div className="flex items-center justify-between mb-6">
+      <div className="card-premium p-5 md:p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-xl font-bold flex items-center gap-3">
             <HelpCircle size={22} className="text-[var(--primary)]" />
             Частые вопросы

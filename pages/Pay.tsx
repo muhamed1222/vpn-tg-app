@@ -18,25 +18,29 @@ export const Pay: React.FC = () => {
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>(
     isInTelegram ? 'telegram' : 'yookassa',
   );
+  const [hasPurchased, setHasPurchased] = useState<boolean | null>(null);
 
-  // Загрузка тарифов из API при монтировании
+  // Загрузка данных при монтировании
   useEffect(() => {
-    const loadTariffs = async () => {
+    const loadData = async () => {
       try {
-        const tariffs = await apiService.getTariffs();
-        // Можно синхронизировать тарифы с API если нужно
-        logger.debug('Загружены тарифы:', tariffs);
+        // Загружаем только историю, чтобы проверить возможность теста
+        const history = await apiService.getPaymentHistory();
+        const hasSuccess = history.some(p => p.status === 'success');
+        setHasPurchased(hasSuccess);
+        
+        // Если уже была покупка, переключаем с тестового плана если он был выбран
+        if (hasSuccess && selectedPlanId === 'plan_7') {
+          setSelectedPlanId(PLANS[1].id);
+        }
       } catch (error) {
-        console.error('Ошибка при загрузке тарифов:', error);
-        // В режиме разработки продолжаем работу с локальными планами
+        console.error('Ошибка при загрузке данных страницы оплаты:', error);
+        setHasPurchased(true); // По умолчанию скрываем тест при ошибке
       }
     };
 
-    // Загружаем только если в Telegram WebApp
-    if (isTelegramWebApp()) {
-      loadTariffs();
-    }
-  }, []);
+    loadData();
+  }, []); // Only on mount
 
   const currentPlan = useMemo(
     () => PLANS.find(p => p.id === selectedPlanId),
@@ -44,11 +48,18 @@ export const Pay: React.FC = () => {
   );
 
   const filteredPlans = useMemo(() => {
-    if (billingCycle === 'monthly') {
-      return PLANS.filter(p => p.durationMonths <= 3);
+    let plans = PLANS;
+    
+    // Скрываем тестовый план, если уже была покупка
+    if (hasPurchased) {
+      plans = plans.filter(p => p.id !== 'plan_7');
     }
-    return PLANS.filter(p => p.durationMonths >= 6);
-  }, [billingCycle]);
+
+    if (billingCycle === 'monthly') {
+      return plans.filter(p => p.durationMonths <= 3);
+    }
+    return plans.filter(p => p.durationMonths >= 6);
+  }, [billingCycle, hasPurchased]);
   
   // Filtering plans based on toggle if needed, or just showing all
   return (
