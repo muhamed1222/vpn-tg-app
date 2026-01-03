@@ -75,9 +75,35 @@ const App: React.FC = () => {
 
         setUser(userData);
 
-        // TODO: Загрузить подписку из API, когда будет соответствующий эндпоинт
-        // Пока оставляем пустую подписку
-        setSubscription({ status: SubscriptionStatus.NONE });
+        // Загружаем статус подписки из нового API
+        try {
+          const status = await apiService.getUserStatus();
+          if (status.ok) {
+            const now = Math.floor(Date.now() / 1000);
+            let subStatus = SubscriptionStatus.NONE;
+            
+            if (status.status === 'active') {
+              if (status.expiresAt === 0 || (status.expiresAt && status.expiresAt > now)) {
+                subStatus = SubscriptionStatus.ACTIVE;
+              } else {
+                subStatus = SubscriptionStatus.EXPIRED;
+              }
+            } else if (status.status === 'disabled' || status.status === 'on_hold') {
+              subStatus = SubscriptionStatus.EXPIRED;
+            }
+
+            setSubscription({
+              status: subStatus,
+              activeUntil: status.expiresAt && status.expiresAt > 0 
+                ? new Date(status.expiresAt * 1000).toLocaleDateString('ru-RU')
+                : (status.expiresAt === 0 ? 'Безлимит' : undefined),
+              planId: undefined, // В новом API нет planId в статусе
+            });
+          }
+        } catch (err) {
+          console.error('Ошибка при загрузке статуса подписки:', err);
+        }
+
         setLoading(false);
       } catch (error) {
         console.error('Ошибка при загрузке данных пользователя:', error);
@@ -109,9 +135,27 @@ const App: React.FC = () => {
     }
 
     try {
-      // TODO: Загрузить подписку из API, когда будет соответствующий эндпоинт
-      // const apiUser = await apiService.getMe();
-      // setSubscription(mapSubscription(apiUser.subscription));
+      const status = await apiService.getUserStatus();
+      if (status.ok) {
+        const now = Math.floor(Date.now() / 1000);
+        let subStatus = SubscriptionStatus.NONE;
+        
+        if (status.status === 'active') {
+          if (status.expiresAt === 0 || (status.expiresAt && status.expiresAt > now)) {
+            subStatus = SubscriptionStatus.ACTIVE;
+          } else {
+            subStatus = SubscriptionStatus.EXPIRED;
+          }
+        }
+
+        setSubscription({
+          status: subStatus,
+          activeUntil: status.expiresAt && status.expiresAt > 0 
+            ? new Date(status.expiresAt * 1000).toLocaleDateString('ru-RU')
+            : (status.expiresAt === 0 ? 'Безлимит' : undefined),
+          planId: undefined,
+        });
+      }
     } catch (error) {
       console.error('Ошибка при обновлении подписки:', error);
     }

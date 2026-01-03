@@ -8,92 +8,49 @@ export type PaymentProvider = 'telegram' | 'yookassa' | 'heleket';
 interface UsePaymentOptions {
   allowBrowserFallback?: boolean;
   onPaid?: () => void;
+  userRef?: string;
 }
 
 export const usePayment = (options: UsePaymentOptions = {}) => {
-  const { allowBrowserFallback = false, onPaid, userRef } = options;
+  const { onPaid } = options;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handlePay = useCallback(async (planId: string, provider?: PaymentProvider) => {
     const isInTelegram = isTelegramWebApp();
-    const selectedProvider: PaymentProvider = provider || (isInTelegram ? 'telegram' : 'yookassa');
-
-    if (selectedProvider === 'telegram' && !isInTelegram) {
-      setError('Оплата доступна только через Telegram WebApp.');
-      return;
-    }
-
-    if (selectedProvider !== 'telegram' && !allowBrowserFallback) {
-      setError('Оплата через сайт сейчас недоступна.');
-      return;
-    }
-
+    
+    // В новой системе мы ориентируемся на YooKassa как основной метод
     setLoading(true);
     setError(null);
 
     try {
-      const payment = await apiService.createPayment(planId, selectedProvider, userRef);
+      // Создаем заказ через наше API
+      const response = await apiService.createOrder(planId);
 
-      // Обработка Telegram Stars
-      if (selectedProvider === 'telegram') {
-        if (!payment.invoice_link) {
-          throw new Error('Ссылка на оплату не получена');
-        }
-
-        if (!isInTelegram) {
-          setError('Оплата через Telegram Stars доступна только в Telegram WebApp.');
-          setLoading(false);
-          return;
-        }
-
-        const webApp = getTelegramWebApp();
-        if (!webApp?.openInvoice) {
-          setError('Не удалось открыть оплату в Telegram.');
-          setLoading(false);
-          return;
-        }
-
-        webApp.openInvoice(payment.invoice_link, (status: string) => {
-          if (status === 'paid') {
-            onPaid?.();
-            navigate(`/result?order_id=${payment.order_id}&status=pending`);
-          } else {
-            setError('Оплата отменена');
-            setLoading(false);
-          }
-        });
-        return;
+      if (!response.paymentUrl) {
+        throw new Error('Ссылка на оплату не получена');
       }
 
-      // Обработка ЮKassa и других провайдеров
-      if (selectedProvider === 'yookassa' || selectedProvider === 'heleket') {
-        const paymentUrl = payment.confirmation_url || payment.payment_url || payment.invoice_link;
-        
-        if (!paymentUrl) {
-          throw new Error('Ссылка на оплату не получена');
-        }
+      // Сохраняем orderId для страницы подтверждения
+      localStorage.setItem('lastOrderId', response.orderId);
 
-        // Сохраняем orderId в localStorage для страницы возврата
-        // Используем "lastOrderId" как указано в требованиях
-        if (payment.order_id) {
-          localStorage.setItem('lastOrderId', payment.order_id);
-        }
-
-        // Редиректим пользователя на страницу оплаты
-        window.location.href = paymentUrl;
-        // navigate не вызываем, так как происходит полный редирект
-        return;
+      // Если мы в Telegram и провайдер Telegram (Stars), используем openInvoice
+      // Но сейчас мы фокусируемся на YooKassa через редирект
+      if (provider === 'telegram' && isInTelegram) {
+        // Логика для Stars если нужно
       }
 
-      setError('Неподдерживаемый провайдер оплаты.');
+      // Редирект на оплату
+      window.location.href = response.paymentUrl;
+      
     } catch (err) {
+      console.error('Payment error:', err);
       const message = err instanceof Error ? err.message : 'Не удалось создать заказ. Попробуйте позже.';
       setError(message);
+      setLoading(false);
     }
-    setLoading(false);
-  }, [allowBrowserFallback, navigate, onPaid]);
+  }, [navigate, onPaid]);
 
   return {
     loading,

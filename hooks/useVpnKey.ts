@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
-import { isTelegramWebApp } from '../utils/telegram';
 
 export const useVpnKey = () => {
   const { subscription } = useAuth();
@@ -11,29 +10,23 @@ export const useVpnKey = () => {
   const requestIdRef = useRef(0);
 
   const loadVpnKey = useCallback(async () => {
-    if (!isTelegramWebApp()) {
-      setVpnKey(null);
-      setError('VPN ключ доступен только через Telegram WebApp');
-      setLoading(false);
-      return;
-    }
-
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
 
     try {
-      const user = await apiService.getMe();
+      const result = await apiService.getUserConfig();
       if (requestId !== requestIdRef.current) return;
 
-      if (user.subscription.vlessKey) {
-        setVpnKey(user.subscription.vlessKey);
+      if (result.ok && result.config) {
+        setVpnKey(result.config);
       } else {
         setVpnKey(null);
         setError('VPN ключ недоступен');
       }
-    } catch {
+    } catch (err) {
       if (requestId !== requestIdRef.current) return;
+      console.error('Error loading VPN key:', err);
       setVpnKey(null);
       setError('Не удалось загрузить VPN ключ. Попробуйте обновить страницу.');
     } finally {
