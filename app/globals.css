@@ -62,6 +62,10 @@ body {
   flex-direction: column;
 }
 
+body.modal-open .app-viewport {
+  overflow: hidden !important;
+}
+
 /* Класс для учета безопасных зон, который можно добавить к любому контейнеру с фоном */
 .safe-area-padding {
   padding-top: env(safe-area-inset-top);

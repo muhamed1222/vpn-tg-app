@@ -25,13 +25,22 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Управление жизненным циклом модалки и блокировкой скролла
+  // Управление блокировкой скролла основного контента
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
+  // Управление жизненным циклом модалки
   useEffect(() => {
     if (isOpen) {
       // Используем setTimeout для избежания синхронного setState
       const mountTimer = setTimeout(() => {
         setMounted(true);
-        document.body.style.overflow = 'hidden';
         // Двойной rAF гарантирует, что браузер успеет отрисовать начальное состояние (mounted: true)
         // перед тем, как мы запустим анимацию (open: true)
         requestAnimationFrame(() => {
@@ -54,7 +63,6 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       
       const unmountTimer = setTimeout(() => {
         setMounted(false);
-        document.body.style.overflow = 'unset';
       }, 850); // Должно совпадать с --dialog-animation-speed в globals.css
       
       return () => {
@@ -153,7 +161,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
     >
       {/* Затемнение фона (Backdrop) */}
       <div 
-        className="css-dialog_backdrop" 
+        className="css-dialog_backdrop touch-none" 
         onClick={onClose}
         style={{ 
           opacity: isDragging ? Math.max(0, 1 - dragY / 400) : undefined,
@@ -173,7 +181,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       >
         {/* Область захвата (Handle + Title) */}
         <div 
-          className="select-none touch-none border-b border-white/5"
+          className="select-none touch-none border-b border-white/5 h-fit"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
