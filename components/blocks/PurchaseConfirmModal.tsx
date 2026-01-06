@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus, ChevronRight, Loader2, Calendar, Monitor, CreditCard } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, ChevronRight, Loader2, Calendar, Monitor, CreditCard, CheckCircle2 } from 'lucide-react';
 import { PaymentMethodsModal } from './PaymentMethodsModal';
 import { WaitingPaymentModal } from './WaitingPaymentModal';
 import { getTelegramWebApp } from '@/lib/telegram';
 import { BottomSheet } from '../ui/BottomSheet';
 import { api } from '@/lib/api';
+import { login } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
 
 interface PurchaseConfirmModalProps {
   isOpen: boolean;
@@ -32,11 +34,69 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
   devices,
   untilDate 
 }) => {
+  const router = useRouter();
   const [isMethodsOpen, setIsMethodsOpen] = useState(false);
   const [isWaitingOpen, setIsWaitingOpen] = useState(false);
   const [selectedMethodId, setSelectedMethodId] = useState('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
+  
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollAttemptsRef = useRef(0);
+  const MAX_POLL_ATTEMPTS = 30; // 1 минута (раз в 2 сек)
+
+  // Очистка таймера при размонтировании
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const startPolling = () => {
+    stopPolling();
+    pollAttemptsRef.current = 0;
+    
+    pollIntervalRef.current = setInterval(async () => {
+      pollAttemptsRef.current += 1;
+      
+      try {
+        const result = await login(true); // Тихий логин для проверки статуса
+        if (result.success) {
+          // Если мы здесь и подписка стала активной (или изменилась дата), значит оплата прошла
+          // Это упрощенная логика, в идеале нужно проверять конкретный заказ
+          // Но для Mini App этого обычно достаточно
+          
+          // Проверяем статус через стор (login уже обновил его)
+          const { useSubscriptionStore } = await import('@/store/subscription.store');
+          const sub = useSubscriptionStore.getState().subscription;
+          
+          if (sub?.status === 'active') {
+            setIsPaid(true);
+            stopPolling();
+            
+            // Через 2 секунды закрываем все и уходим на главную
+            setTimeout(() => {
+              setIsWaitingOpen(false);
+              onClose();
+              router.push('/');
+            }, 2500);
+          }
+        }
+      } catch (e) {
+        console.error('Polling error:', e);
+      }
+
+      if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+        stopPolling();
+      }
+    }, 2000);
+  };
 
   const handlePayClick = async () => {
     setIsProcessing(true);
@@ -49,7 +109,10 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
         setPaymentUrl(response.paymentUrl);
         setIsWaitingOpen(true);
         
-        // 2. Делаем небольшую задержку для плавности и редиректим
+        // 2. Начинаем поллинг статуса в фоне
+        startPolling();
+        
+        // 3. Делаем небольшую задержку для плавности и редиректим
         setTimeout(() => {
           handleRedirect(response.paymentUrl);
         }, 1000);
@@ -159,6 +222,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
         isOpen={isWaitingOpen}
         onClose={() => setIsWaitingOpen(false)}
         onRedirect={handleRedirect}
+        isPaid={isPaid}
       />
     </>
   );

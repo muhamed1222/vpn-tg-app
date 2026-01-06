@@ -17,10 +17,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Автоматическая авторизация при загрузке приложения
-    login().catch((error) => {
-      // Ошибка уже обработана в login()
-      console.error('Auth initialization failed:', error);
-    });
+    const initAuth = async () => {
+      try {
+        await login();
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+      }
+    };
+
+    initAuth();
+
+    // 1. Слушаем возвращение пользователя в приложение (стандартный браузерный API)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        login(true).catch(() => {}); // Обновляем данные при возврате (тихо)
+      }
+    };
+
+    // 2. Слушаем фокус окна (дополнительная страховка)
+    const handleFocus = () => {
+      login(true).catch(() => {});
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Можно показать loading screen пока идет авторизация

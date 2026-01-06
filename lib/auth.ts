@@ -12,14 +12,17 @@ export interface LoginResult {
 /**
  * Авторизация пользователя через Telegram WebApp
  * 
+ * @param silent - Если true, не менять состояние loading в сторе
  * @returns Результат авторизации с информацией об ошибке при неудаче
  */
-export const login = async (): Promise<LoginResult> => {
+export const login = async (silent = false): Promise<LoginResult> => {
   const userStore = useUserStore.getState();
   const subStore = useSubscriptionStore.getState();
   const webApp = getTelegramWebApp();
   
-  subStore.setLoading(true);
+  if (!silent) {
+    subStore.setLoading(true);
+  }
   
   try {
     // Получаем базового пользователя из Telegram SDK для немедленного отображения
