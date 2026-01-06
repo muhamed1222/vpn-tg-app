@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, ChevronRight, Loader2 } from 'lucide-react';
+import { Plus, ChevronRight, Loader2, Calendar, Monitor, CreditCard } from 'lucide-react';
 import { PaymentMethodsModal } from './PaymentMethodsModal';
 import { WaitingPaymentModal } from './WaitingPaymentModal';
 import { getTelegramWebApp } from '@/lib/telegram';
@@ -59,29 +59,46 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
     }
   };
 
-  const currentMethod = {
-    card: 'Оплата новой картой',
-    sbp: 'Оплата новым счетом СБП',
-    sberpay: 'Оплата новым SberPay',
-  }[selectedMethodId as 'card' | 'sbp' | 'sberpay'];
+  const getMethodInfo = () => {
+    switch (selectedMethodId) {
+      case 'card': return { name: 'Банковская карта', icon: <CreditCard size={20} /> };
+      case 'sbp': return { name: 'СБП', icon: <div className="font-bold text-[10px]">СБП</div> };
+      case 'sberpay': return { name: 'SberPay', icon: <div className="font-bold text-[10px]">Sber</div> };
+      default: return { name: 'Способ оплаты', icon: <Plus size={20} /> };
+    }
+  };
+
+  const methodInfo = getMethodInfo();
 
   return (
     <>
       <BottomSheet isOpen={isOpen} onClose={onClose} title="Подтверждение">
-        <div className="flex flex-col">
+        <div className="flex flex-col pb-4">
           {/* Детали заказа */}
-            <div 
-              className="bg-white/5 rounded-[24px] p-5 border border-white/5 mb-6 space-y-4 css-dialog_content-item"
-              style={{ '--index': 1 } as React.CSSProperties}
-            >
-            <div className="space-y-1">
-              <p className="text-white/90 text-base font-medium leading-snug">
-                Подписка до {untilDate}, {duration}
-              </p>
-              <div className="h-px bg-white/5 w-full my-3" />
-              <p className="text-white/90 text-base font-medium">
-                Количество устройств: {devices}
-              </p>
+          <div 
+            className="bg-white/[0.03] rounded-[24px] p-5 border border-white/5 mb-4 space-y-4 css-dialog_content-item"
+            style={{ '--index': 1 } as React.CSSProperties}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-[#F55128]/10 rounded-xl flex items-center justify-center border border-[#F55128]/20 text-[#F55128]">
+                <Calendar size={20} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white/40 text-xs font-medium uppercase tracking-wider">Срок подписки</span>
+                <span className="text-white text-base font-semibold">До {untilDate} ({duration})</span>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/5 w-full" />
+
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-[#F55128]/10 rounded-xl flex items-center justify-center border border-[#F55128]/20 text-[#F55128]">
+                <Monitor size={20} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white/40 text-xs font-medium uppercase tracking-wider">Устройства</span>
+                <span className="text-white text-base font-semibold">{devices} одновременно</span>
+              </div>
             </div>
           </div>
 
@@ -92,24 +109,20 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
           >
             <div 
               onClick={() => setIsMethodsOpen(true)}
-              className="bg-white/5 rounded-[24px] p-4 border border-white/5 mb-6 flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-colors"
+              className="bg-white/5 rounded-[24px] p-4 border border-white/5 mb-6 flex items-center justify-between group cursor-pointer hover:bg-white/10 active:scale-[0.99] transition-all"
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
-                  {selectedMethodId === 'card' ? (
-                    <Plus size={24} className="text-white/60" />
-                  ) : (
-                    <div className="text-[10px] font-medium text-white uppercase">
-                      {selectedMethodId}
-                    </div>
-                  )}
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 text-white/60 group-hover:text-white transition-colors">
+                  {methodInfo.icon}
                 </div>
-                <span className="text-base font-medium text-white">{currentMethod}</span>
+                <div className="flex flex-col">
+                  <span className="text-white/40 text-xs font-medium uppercase tracking-wider">Способ оплаты</span>
+                  <span className="text-white text-base font-semibold">{methodInfo.name}</span>
+                </div>
               </div>
-              <button className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl px-4 py-2 flex items-center gap-1 transition-colors">
-                <span className="text-sm font-medium text-white/80">Изменить</span>
-                <ChevronRight size={16} className="text-white/40" />
-              </button>
+              <div className="bg-white/5 p-2 rounded-full text-white/20 group-hover:text-white/60 transition-colors">
+                <ChevronRight size={20} />
+              </div>
             </div>
           </div>
 
@@ -125,7 +138,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
             >
               {isProcessing ? (
                 <>
-                  <Loader2 size={20} className="animate-spin" />
+                  <Loader2 size={24} className="animate-spin" />
                   <span>Обработка...</span>
                 </>
               ) : (

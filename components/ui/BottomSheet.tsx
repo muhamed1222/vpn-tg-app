@@ -171,7 +171,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       
       {/* Внутренний контейнер модалки */}
       <div 
-        className={`css-dialog_inner shadow-2xl border-t border-x border-white/5 grid grid-rows-[auto,1fr] h-[85vh] font-sans ${isDragging ? 'no-transition' : ''}`}
+        className={`css-dialog_inner shadow-2xl border-t border-x border-white/5 grid grid-rows-[auto,1fr] h-fit max-h-[85vh] font-sans ${isDragging ? 'no-transition' : ''}`}
         style={{ 
           transform: isDragging 
             ? `translate3d(0, ${dragY}px, 0)` 
