@@ -125,34 +125,10 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
             </div>
           </div>
 
-          {/* Выбор способа оплаты */}
-          <div 
-            className="css-dialog_content-item"
-            style={{ '--index': 2 } as React.CSSProperties}
-          >
-            <div 
-              onClick={() => setIsMethodsOpen(true)}
-              className="bg-white/5 rounded-[10px] px-[14px] py-[14px] border border-white/5 mb-6 flex items-center justify-between group cursor-pointer hover:bg-white/10 active:scale-[0.99] transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 text-white/60 group-hover:text-white transition-colors">
-                  {methodInfo.icon}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-white/40 text-[11px] font-medium uppercase tracking-wider">Способ оплаты</span>
-                  <span className="text-white text-base font-semibold">{methodInfo.name}</span>
-                </div>
-              </div>
-              <div className="bg-white/5 p-2 rounded-full text-white/20 group-hover:text-white/60 transition-colors">
-                <ChevronRight size={18} />
-              </div>
-            </div>
-          </div>
-
           {/* Кнопка оплаты */}
           <div 
             className="css-dialog_content-item"
-            style={{ '--index': 3 } as React.CSSProperties}
+            style={{ '--index': 2 } as React.CSSProperties}
           >
             <button 
               onClick={handlePayClick}
