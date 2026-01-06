@@ -117,7 +117,7 @@ export default function Home() {
         */}
         <div className="flex justify-between items-start mb-8 px-[10px] py-[6px]">
           <div>
-            <h1 className="text-3xl font-medium text-white tracking-tight">Outlivion</h1>
+            <h1 className="text-2xl font-medium text-white tracking-tight">Outlivion</h1>
             
             {/* 
               Статус подключения VPN (offline/online)
@@ -142,10 +142,10 @@ export default function Home() {
               
               Визуальное оформление:
               - Цвет текста: text-[#F55128]/60 (приглушенный оранжево-красный для offline)
-              - Размер: text-lg font-medium
+              - Размер: text-base font-medium
             */}
             <p 
-              className={`text-lg font-medium ${!isOnlineStatus ? 'text-yellow-500' : subscription?.status === 'active' ? 'text-[#F55128]' : 'text-[#F55128]/60'}`}
+              className={`text-base font-medium ${!isOnlineStatus ? 'text-yellow-500' : subscription?.status === 'active' ? 'text-[#F55128]' : 'text-[#F55128]/60'}`}
               aria-live="polite"
               aria-label={`Статус VPN: ${!isOnlineStatus ? 'нет подключения к интернету' : subscription?.status === 'active' ? 'онлайн' : 'офлайн'}`}
             >
@@ -173,8 +173,8 @@ export default function Home() {
               - Загружается с бэкенда через API при авторизации
               
               Визуальное оформление:
-              - Префикс "до": мелкий серый текст (text-white/40 text-sm)
-              - Дата: белый текст среднего размера (text-white/80 text-lg)
+              - Префикс "до": мелкий серый текст (text-white/40 text-xs)
+              - Дата: белый текст среднего размера (text-white/80 text-base)
               - Выравнивание: text-right (по правому краю)
             */}
             {subscriptionLoading ? (
@@ -184,8 +184,8 @@ export default function Home() {
               </div>
             ) : (
               <>
-                <p className="text-white/80 text-lg">
-                  <span className="text-white/40 text-sm align-middle mr-1">до</span>
+                <p className="text-white/80 text-base">
+                  <span className="text-white/40 text-xs align-middle mr-1">до</span>
                   {formattedExpirationDate}
                 </p>
                 
@@ -217,10 +217,10 @@ export default function Home() {
                   
                   Визуальное оформление:
                   - Цвет текста: text-[#D9A14E] (золотистый для истекшей подписки)
-                  - Размер: text-sm font-medium
+                  - Размер: text-xs font-medium
                   - Позиция: под датой истечения, выравнивание по правому краю
                 */}
-                <p className={`text-sm font-medium ${
+                <p className={`text-xs font-medium ${
                   subscription?.status === 'active' 
                     ? 'text-[#F55128]' 
                     : subscription?.status === 'expired'
@@ -260,9 +260,9 @@ export default function Home() {
               <div className="bg-white/20 p-2.5 rounded-xl" aria-hidden="true">
                 <Plug size={24} className="rotate-45" aria-hidden="true" />
               </div>
-              <span className="text-lg font-medium">Купить подписку</span>
+              <span className="text-base font-medium">Купить подписку</span>
             </div>
-            <span className="text-lg font-medium opacity-80 group-hover:opacity-100 transition-opacity" aria-label={`Цена от ${SUBSCRIPTION_CONFIG.MIN_PRICE} рублей`}>
+            <span className="text-base font-medium opacity-80 group-hover:opacity-100 transition-opacity" aria-label={`Цена от ${SUBSCRIPTION_CONFIG.MIN_PRICE} рублей`}>
               от {SUBSCRIPTION_CONFIG.MIN_PRICE} ₽
             </span>
           </Link>
@@ -283,9 +283,9 @@ export default function Home() {
               <div className="bg-white/5 p-2.5 rounded-xl border border-white/5" aria-hidden="true">
                 <Settings size={24} aria-hidden="true" />
               </div>
-              <span className="text-lg font-medium">Установка и настройка</span>
+              <span className="text-base font-medium">Установка и настройка</span>
             </div>
-            <span className="text-[#F55128] text-lg font-medium opacity-80 group-hover:opacity-100 transition-opacity" aria-label={`Платформа: ${platform}`}>
+            <span className="text-[#F55128] text-base font-medium opacity-80 group-hover:opacity-100 transition-opacity" aria-label={`Платформа: ${platform}`}>
               {platform}
             </span>
           </Link>
@@ -310,7 +310,7 @@ export default function Home() {
             <div className="bg-white/5 p-2.5 rounded-xl border border-white/5" aria-hidden="true">
               <User size={24} aria-hidden="true" />
             </div>
-            <span className="text-lg font-medium">Профиль</span>
+            <span className="text-base font-medium">Профиль</span>
           </Link>
             {/* 
               Кнопка "Поддержка" 
@@ -328,7 +328,7 @@ export default function Home() {
               <div className="bg-white/5 p-2.5 rounded-xl border border-white/5" aria-hidden="true">
                 <MessageSquare size={24} aria-hidden="true" />
               </div>
-              <span className="text-lg font-medium">Поддержка</span>
+              <span className="text-base font-medium">Поддержка</span>
             </button>
           </div>
         </div>

@@ -77,7 +77,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
                   onClick={() => setOpenIndex(isItemOpen ? null : index)}
                   className="w-full p-5 flex items-start justify-between text-left gap-4"
                 >
-                  <span className="text-lg font-medium text-white/90 leading-snug">
+                  <span className="text-base font-medium text-white/90 leading-snug">
                     {item.question}
                   </span>
                   {isItemOpen ? (
@@ -107,12 +107,12 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
             className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] py-5 flex items-center justify-center gap-3 text-white shadow-lg shadow-[#F55128]/10"
           >
             <MessageSquare size={24} />
-            <span className="text-xl font-medium">Написать в поддержку</span>
+            <span className="text-lg font-medium">Написать в поддержку</span>
           </button>
         </div>
 
         <p 
-          className="text-white/30 text-center text-sm css-dialog_content-item"
+          className="text-white/30 text-center text-xs css-dialog_content-item"
           style={{ '--index': FAQ_DATA.length + 2 } as React.CSSProperties}
         >
           Мы отвечаем в течение 15 минут

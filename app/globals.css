@@ -33,6 +33,7 @@
 html,
 body {
   font-family: 'GT Walsheim Pro', var(--font-gt-walsheim-pro, system-ui, sans-serif);
+  font-size: 15px;
 }
 
 body {

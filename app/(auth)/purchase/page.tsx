@@ -39,7 +39,7 @@ export default function PurchasePage() {
         </Link>
       </div>
 
-      <h1 className="text-2xl font-medium mb-6 px-2">Покупка подписки</h1>
+      <h1 className="text-xl font-medium mb-6 px-2">Покупка подписки</h1>
 
       {/* 
         Инфо-блок об устройствах 
@@ -47,12 +47,12 @@ export default function PurchasePage() {
       */}
       <div className="bg-[#121212] rounded-[16px] p-6 border border-white/10 mb-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-white/5 rounded-xl flex items-center justify-center text-3xl font-bold text-[#F55128]">
+          <div className="w-14 h-14 bg-white/5 rounded-xl flex items-center justify-center text-2xl font-bold text-[#F55128]">
             {SUBSCRIPTION_CONFIG.DEFAULT_DEVICES_COUNT}
           </div>
           <div>
-            <h2 className="text-xl font-bold">Устройств</h2>
-            <p className="text-white/40 text-sm font-medium">Доступно одновременно в подписке</p>
+            <h2 className="text-lg font-bold">Устройств</h2>
+            <p className="text-white/40 text-xs font-medium">Доступно одновременно в подписке</p>
           </div>
         </div>
       </div>
@@ -84,16 +84,16 @@ export default function PurchasePage() {
                 </div>
               )}
               
-              <span className={`text-[11px] uppercase tracking-[0.1em] font-medium mb-1 ${isSelected ? 'text-[#F55128]' : 'text-white/40'}`}>
+              <span className={`text-[10px] uppercase tracking-[0.1em] font-medium mb-1 ${isSelected ? 'text-[#F55128]' : 'text-white/40'}`}>
                 {plan.duration}
               </span>
               
               <div className="flex flex-col items-center">
-                <span className="text-2xl font-bold text-white">
+                <span className="text-xl font-bold text-white">
                   {plan.totalPrice} ₽
                 </span>
                 {plan.id !== '1m' && (
-                  <div className={`text-[11px] font-medium mt-1.5 px-2 py-0.5 rounded-lg transition-colors ${
+                  <div className={`text-[10px] font-medium mt-1.5 px-2 py-0.5 rounded-lg transition-colors ${
                     isSelected ? 'bg-[#F55128]/20 text-[#F55128]' : 'bg-white/5 text-white/40'
                   }`}>
                     {plan.monthlyPrice} ₽ / мес
@@ -114,11 +114,11 @@ export default function PurchasePage() {
         aria-label={`Продолжить оформление подписки за ${selectedPlan.totalPrice} рублей`}
         type="button"
       >
-        <span className="text-lg font-bold text-white">
+        <span className="text-base font-bold text-white">
           Продолжить за {selectedPlan.totalPrice} ₽
         </span>
         {selectedPlan.oldPrice && (
-          <span className="text-base font-medium text-white/40 line-through">
+          <span className="text-sm font-medium text-white/40 line-through">
             {selectedPlan.oldPrice} ₽
           </span>
         )}

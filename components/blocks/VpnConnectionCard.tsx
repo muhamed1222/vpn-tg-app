@@ -103,8 +103,8 @@ export const VpnConnectionCard: React.FC = () => {
             <AlertCircle size={24} className="text-red-500" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-medium text-white mb-1">Ошибка загрузки</h3>
-            <p className="text-white/60 text-sm">{error || 'VPN ключ недоступен'}</p>
+            <h3 className="text-base font-medium text-white mb-1">Ошибка загрузки</h3>
+            <p className="text-white/60 text-xs">{error || 'VPN ключ недоступен'}</p>
           </div>
         </div>
         <button
@@ -128,8 +128,8 @@ export const VpnConnectionCard: React.FC = () => {
             <Key size={24} className="text-[#F55128]" />
           </div>
           <div>
-            <h3 className="text-lg font-medium text-white">VPN ключ</h3>
-            <p className="text-white/40 text-sm">Используйте для подключения</p>
+            <h3 className="text-base font-medium text-white">VPN ключ</h3>
+            <p className="text-white/40 text-xs">Используйте для подключения</p>
           </div>
         </div>
         <button
@@ -156,7 +156,7 @@ export const VpnConnectionCard: React.FC = () => {
       {showQR && (
         <div className="mt-6 pt-6 border-t border-white/5">
           <div className="flex flex-col items-center">
-            <h4 className="text-base font-medium text-white/90 mb-4 flex items-center gap-2">
+            <h4 className="text-sm font-medium text-white/90 mb-4 flex items-center gap-2">
               <Globe size={18} />
               QR код для быстрого подключения
             </h4>

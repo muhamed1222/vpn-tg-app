@@ -88,7 +88,7 @@ export default function ProfilePage() {
         При копировании иконка временно меняется на галочку.
       */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-medium mb-1">
+        <h1 className="text-xl font-medium mb-1">
           {user?.firstName || 'Пользователь'}
         </h1>
         <button
@@ -98,7 +98,7 @@ export default function ProfilePage() {
           aria-live="polite"
           type="button"
         >
-          <span className="text-lg">id: {user?.id || '12345678'}</span>
+          <span className="text-base">id: {user?.id || '12345678'}</span>
           {isCopied ? (
             <Check size={16} className="text-[#F55128]" aria-hidden="true" />
           ) : (
@@ -171,7 +171,7 @@ export default function ProfilePage() {
               <div className={`${item.bg} p-2 rounded-lg`}>
                 {item.icon}
               </div>
-              <span className="text-lg font-medium text-white/90">{item.label}</span>
+              <span className="text-base font-medium text-white/90">{item.label}</span>
             </>
           );
           
@@ -226,7 +226,7 @@ export default function ProfilePage() {
 
       {/* Subscription Link Card */}
       <div className="bg-[#121212] rounded-[16px] p-6 border border-white/5 mb-6">
-        <h2 className="text-lg font-medium mb-4 text-white/90">
+        <h2 className="text-base font-medium mb-4 text-white/90">
           Ссылка на подписку для ручного ввода:
         </h2>
         <button
@@ -235,7 +235,7 @@ export default function ProfilePage() {
           aria-label="Скопировать ссылку на подписку"
           type="button"
         >
-          <code className="text-[#F55128] text-lg">https://ultm.app/QEbFPbbh</code>
+          <code className="text-[#F55128] text-base">https://ultm.app/QEbFPbbh</code>
           <Copy size={20} className="text-white/40" aria-hidden="true" />
         </button>
       </div>
@@ -247,7 +247,7 @@ export default function ProfilePage() {
         type="button"
       >
         <Monitor size={24} className="text-[#F55128]" aria-hidden="true" />
-        <span className="text-lg font-medium">Инструкция для всех платформ</span>
+        <span className="text-base font-medium">Инструкция для всех платформ</span>
       </button>
     </main>
   );

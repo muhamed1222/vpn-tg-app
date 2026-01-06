@@ -78,7 +78,7 @@ export const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
             >
               <div className="flex items-center gap-4">
                 {method.icon}
-                <span className="text-lg font-medium text-white/90">{method.label}</span>
+                <span className="text-base font-medium text-white/90">{method.label}</span>
               </div>
               {isSelected && (
                 <div className="w-8 h-8 bg-[#F55128]/20 rounded-full flex items-center justify-center border border-[#F55128]/30">

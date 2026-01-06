@@ -75,11 +75,11 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
               style={{ '--index': 1 } as React.CSSProperties}
             >
             <div className="space-y-1">
-              <p className="text-white/90 text-lg font-medium leading-snug">
+              <p className="text-white/90 text-base font-medium leading-snug">
                 Подписка до {untilDate}, {duration}
               </p>
               <div className="h-px bg-white/5 w-full my-3" />
-              <p className="text-white/90 text-lg font-medium">
+              <p className="text-white/90 text-base font-medium">
                 Количество устройств: {devices}
               </p>
             </div>
@@ -104,7 +104,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
                     </div>
                   )}
                 </div>
-                <span className="text-lg font-medium text-white">{currentMethod}</span>
+                <span className="text-base font-medium text-white">{currentMethod}</span>
               </div>
               <button className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-[10px] px-4 py-2 flex items-center gap-1 transition-colors">
                 <span className="text-sm font-medium text-white/80">Изменить</span>
@@ -121,7 +121,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
             <button 
               onClick={handlePayClick}
               disabled={isProcessing}
-              className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] py-5 text-xl font-medium text-white shadow-lg shadow-[#F55128]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] py-5 text-lg font-medium text-white shadow-lg shadow-[#F55128]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isProcessing ? (
                 <>

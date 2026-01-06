@@ -148,12 +148,12 @@ export default function SetupPage() {
           </div>
 
           <div className="space-y-4">
-            <h1 className="text-3xl font-medium text-white">Приложение</h1>
+            <h1 className="text-2xl font-medium text-white">Приложение</h1>
             <div className="space-y-2">
-              <p className="text-white/80 text-xl leading-relaxed max-w-[300px] mx-auto">
+              <p className="text-white/80 text-base leading-relaxed max-w-[300px] mx-auto">
                 Установите приложение Hiddify
               </p>
-              <p className="text-white/40 text-sm leading-relaxed max-w-[260px] mx-auto">
+              <p className="text-white/40 text-xs leading-relaxed max-w-[260px] mx-auto">
                 Это наш официальный защищенный плеер для работы VPN-протоколов
               </p>
             </div>
@@ -168,7 +168,7 @@ export default function SetupPage() {
             aria-label="Установить приложение Hiddify"
             type="button"
           >
-            <span className="text-xl font-medium">Установить</span>
+            <span className="text-lg font-medium">Установить</span>
             <CloudDownload size={24} aria-hidden="true" />
           </button>
           
@@ -178,7 +178,7 @@ export default function SetupPage() {
             aria-label="Перейти к следующему шагу, если приложение уже установлено"
             type="button"
           >
-            <span className="text-lg font-medium">Уже установлено</span>
+            <span className="text-base font-medium">Уже установлено</span>
             <ArrowRight size={20} aria-hidden="true" />
           </button>
         </div>
@@ -235,8 +235,8 @@ export default function SetupPage() {
           </div>
 
           <div className="space-y-4">
-            <h1 className="text-3xl font-medium text-white tracking-tight">Готово!</h1>
-            <p className="text-white/60 text-xl leading-relaxed max-w-[300px] mx-auto">
+            <h1 className="text-2xl font-medium text-white tracking-tight">Готово!</h1>
+            <p className="text-white/60 text-base leading-relaxed max-w-[300px] mx-auto">
               Нажмите на круглую кнопку включения VPN в приложении Hiddify
             </p>
           </div>
@@ -247,7 +247,7 @@ export default function SetupPage() {
             href="/"
             className="w-full bg-[#121212] hover:bg-[#121212]/80 active:scale-[0.98] transition-all border border-white/10 rounded-[10px] py-5 flex items-center justify-center text-white"
           >
-            <span className="text-lg font-medium">Завершить настройку</span>
+            <span className="text-base font-medium">Завершить настройку</span>
           </Link>
         </div>
       </main>
@@ -319,8 +319,8 @@ export default function SetupPage() {
           </div>
 
           <div className="space-y-4">
-            <h1 className="text-3xl font-medium text-white">Подписка</h1>
-            <p className="text-white/60 text-xl leading-relaxed max-w-[300px] mx-auto">
+            <h1 className="text-2xl font-medium text-white">Подписка</h1>
+            <p className="text-white/60 text-base leading-relaxed max-w-[300px] mx-auto">
               Нажмите «Добавить», чтобы настройки применились автоматически
             </p>
           </div>
@@ -332,7 +332,7 @@ export default function SetupPage() {
             onClick={handleAddSubscription}
             className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] py-5 flex items-center justify-center gap-2 text-white shadow-lg shadow-[#F55128]/20"
           >
-            <span className="text-xl font-medium">Добавить</span>
+            <span className="text-lg font-medium">Добавить</span>
             <CirclePlus size={24} />
           </button>
           
@@ -341,7 +341,7 @@ export default function SetupPage() {
               onClick={() => setStep(4)}
               className="w-full bg-transparent hover:bg-white/5 active:scale-[0.98] transition-all rounded-[10px] py-4 flex items-center justify-center gap-2 text-white/40"
             >
-              <span className="text-lg font-medium">Далее</span>
+              <span className="text-base font-medium">Далее</span>
               <ArrowRight size={20} />
             </button>
 
@@ -385,10 +385,10 @@ export default function SetupPage() {
         </div>
 
         <div className="text-center space-y-4 mb-12">
-          <h1 className="text-3xl font-medium text-white leading-tight">
+          <h1 className="text-2xl font-medium text-white leading-tight">
             Настройка на {platform}
           </h1>
-          <p className="text-white/60 text-lg leading-relaxed max-w-[280px] mx-auto">
+          <p className="text-white/60 text-base leading-relaxed max-w-[280px] mx-auto">
             Настройка VPN происходит в 3 шага и занимает пару минут
           </p>
         </div>
@@ -397,14 +397,14 @@ export default function SetupPage() {
       <div className="relative z-10 p-6 space-y-3 pb-12">
         <button 
           onClick={() => setStep(2)}
-          className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] py-5 text-lg font-medium text-white shadow-lg shadow-[#F55128]/10"
+          className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] py-5 text-base font-medium text-white shadow-lg shadow-[#F55128]/10"
         >
           Начать настройку на этом устройстве
         </button>
         
         <button 
           onClick={handleOtherDeviceClick}
-          className="w-full bg-[#121212] hover:bg-[#121212]/80 active:scale-[0.98] transition-all border border-white/5 rounded-[10px] py-5 text-lg font-medium text-white"
+          className="w-full bg-[#121212] hover:bg-[#121212]/80 active:scale-[0.98] transition-all border border-white/5 rounded-[10px] py-5 text-base font-medium text-white"
         >
           Установить на другом устройстве
         </button>

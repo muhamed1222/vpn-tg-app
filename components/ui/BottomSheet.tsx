@@ -188,7 +188,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
           <div className="flex items-center justify-between px-6 pb-4 border-b border-white/5">
             <h2 
               id="bottom-sheet-title"
-              className="text-xl font-medium text-white pointer-events-none"
+              className="text-lg font-medium text-white pointer-events-none"
             >
               {title}
             </h2>

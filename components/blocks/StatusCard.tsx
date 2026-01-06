@@ -58,7 +58,7 @@ export const StatusCard: React.FC<StatusCardProps> = memo(({ status, expiresAt }
       </div>
       
       <div className="space-y-1">
-        <p className="text-white text-lg font-medium">{info.description}</p>
+        <p className="text-white text-base font-medium">{info.description}</p>
       </div>
 
       {info.cta && (
