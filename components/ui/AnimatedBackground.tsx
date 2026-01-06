@@ -8,24 +8,24 @@ import { motion } from 'framer-motion';
  * Использует технику гигантского оффсета для имитации бесконечного скролла.
  */
 export const AnimatedBackground: React.FC = () => {
-    const offset = 100000;
-    const speed = 30; // Чуть быстрее для заметности
+    const backgroundSize = 32;
+    const speed = 30; // pixels per second
 
     return (
         <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-main-gradient">
             {/* Движущийся слой с паттерном */}
             <motion.div
                 initial={{ backgroundPositionY: '0px' }}
-                animate={{ backgroundPositionY: `-${offset}px` }}
+                animate={{ backgroundPositionY: `-${backgroundSize}px` }}
                 transition={{
-                    duration: offset / speed,
+                    duration: backgroundSize / speed,
                     repeat: Infinity,
                     ease: "linear",
                 }}
                 className="absolute inset-0 opacity-[0.4]"
                 style={{
                     backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
-                    backgroundSize: '32px 32px',
+                    backgroundSize: `${backgroundSize}px ${backgroundSize}px`,
                 }}
             />
 

@@ -1,34 +1,27 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: 'GT Walsheim Pro';
-  src: url('/fonts/GTWalsheimPro-Regular.woff') format('woff');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme {
-  --font-sans: 'GT Walsheim Pro', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-gt-walsheim-pro), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
 :root {
   --background: #080808;
   --foreground: #ffffff;
-  
+
   /* ПЕРЕМЕННЫЕ ИЗ ТВОИХ СПЕЦИФИКАЦИЙ (ускорил для нативности) */
   --dialog-animation-speed: .35s;
   --backdrop-speed: .3s;
   --backdrop-ease: cubic-bezier(.4, 0, .2, 1);
   --modal-speed: .35s;
-  --modal-ease: cubic-bezier(.34, 1.56, .64, 1); /* Добавил легкий bounce эффект */
+  --modal-ease: cubic-bezier(.34, 1.56, .64, 1);
+  /* Добавил легкий bounce эффект */
   --close-button-speed: .3s;
   --close-button-ease: cubic-bezier(.4, 0, .2, 1);
   --content-speed: .3s;
   --content-ease: cubic-bezier(.4, 0, .2, 1);
   --content-stagger: .05s;
-  
+
   /* Telegram Viewport Variables */
   --tg-viewport-height: 100vh;
   --tg-viewport-stable-height: 100vh;
@@ -79,7 +72,7 @@ body.modal-open .app-viewport {
 }
 
 /* --- СТИЛИ ИЗ css-dialog-styles --- */
-.css-dialog {	
+.css-dialog {
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -89,7 +82,7 @@ body.modal-open .app-viewport {
 }
 
 .css-dialog:not(.open) {
-	pointer-events: none;
+  pointer-events: none;
   visibility: hidden;
   transition: visibility 0s linear var(--dialog-animation-speed);
 }
@@ -103,6 +96,7 @@ body.modal-open .app-viewport {
   opacity: 0;
   transition: opacity var(--backdrop-speed) var(--backdrop-ease);
 }
+
 .css-dialog.open .css-dialog_backdrop {
   opacity: 1;
 }
@@ -111,13 +105,14 @@ body.modal-open .app-viewport {
 .css-dialog_inner {
   position: relative;
   width: 100%;
-  max-width: 32rem; /* max-w-lg */
+  max-width: 32rem;
+  /* max-w-lg */
   background-color: rgba(18, 18, 18, 1);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
   contain: content;
   transform: translate3d(0, 100%, 0);
-  transition: transform var(--modal-speed) var(--modal-ease);  
+  transition: transform var(--modal-speed) var(--modal-ease);
   will-change: transform;
   font-family: 'GT Walsheim Pro', var(--font-sans, system-ui, sans-serif);
 }
@@ -151,9 +146,11 @@ body.modal-open .app-viewport {
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
