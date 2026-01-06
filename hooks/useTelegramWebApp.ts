@@ -41,8 +41,12 @@ export function useTelegramWebApp() {
     const expandApp = () => {
       try {
         tg.expand();
+        // Блокируем свайп вниз для закрытия (доступно в новых версиях SDK)
+        if (tg.disableVerticalSwipes) {
+          tg.disableVerticalSwipes();
+        }
       } catch (e) {
-        console.error('Telegram expand failed:', e);
+        console.error('Telegram expand/disableSwipes failed:', e);
       }
     };
 

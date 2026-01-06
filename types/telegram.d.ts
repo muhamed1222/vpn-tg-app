@@ -23,6 +23,7 @@ export interface TelegramWebApp {
   themeParams: ThemeParams;
   isExpanded: boolean;
   isFullscreen?: boolean;
+  isVerticalSwipesEnabled?: boolean;
   viewportHeight: number;
   viewportStableHeight: number;
   headerColor: string;
@@ -37,6 +38,8 @@ export interface TelegramWebApp {
   expand(): void;
   requestFullscreen?(): void;
   exitFullscreen?(): void;
+  disableVerticalSwipes?(): void;
+  enableVerticalSwipes?(): void;
   close(): void;
   sendData(data: string): void;
   openLink(url: string, options?: { try_instant_view?: boolean }): void;
