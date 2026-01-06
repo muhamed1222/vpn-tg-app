@@ -64,6 +64,14 @@ export default function ProfilePage() {
     navigator.clipboard.writeText('https://ultm.app/QEbFPbbh');
   };
 
+  interface MenuItem {
+    icon: React.ReactNode;
+    label: string;
+    bg: string;
+    onClick?: () => void;
+    href?: string;
+  }
+
   return (
     <main className="min-h-screen bg-black text-white p-4 font-sans select-none">
       {/* Header with Back Button */}
@@ -104,58 +112,60 @@ export default function ProfilePage() {
         Набор основных действий пользователя в профиле.
       */}
       <nav className="bg-[#121212] rounded-[16px] overflow-hidden border border-white/5 mb-6" aria-label="Меню профиля">
-        {[
-          { 
-            /* 
-              Пункт "Оплата" 
-              Назначение: Управление способами оплаты и автопродлением.
-            */
-            icon: <CreditCard className="text-[#F55128]" size={20} />, 
-            label: 'Оплата', 
-            bg: 'bg-[#F55128]/10', 
-            onClick: () => setIsPaymentOpen(true)
-          },
-          { 
-            /* 
-              Пункт "Мои транзакции" 
-              Назначение: Просмотр истории платежей.
-            */
-            icon: <List className="text-[#F55128]" size={20} />, 
-            label: 'Мои транзакции', 
-            bg: 'bg-[#F55128]/10',
-            onClick: () => setIsTransactionsOpen(true)
-          },
-          { 
-            /* 
-              Пункт "Реферальная программа" 
-              Назначение: Просмотр статистики приглашенных друзей и бонусов.
-            */
-            icon: <Users className="text-[#A78BFA]" size={20} />, 
-            label: 'Реферальная программа', 
-            bg: 'bg-[#A78BFA]/10',
-            onClick: () => setIsReferralOpen(true)
-          },
-          { 
-            /* 
-              Пункт "Связаться с поддержкой" 
-              Назначение: Прямой переход в чат поддержки.
-            */
-            icon: <MessageSquare className="text-[#D9A14E]" size={20} />, 
-            label: 'Связаться с поддержкой', 
-            bg: 'bg-[#D9A14E]/10',
-            onClick: handleSupportClick
-          },
-          { 
-            /* 
-              Пункт "Пользовательское соглашение" 
-              Назначение: Юридическая информация и правила сервиса.
-            */
-            icon: <FileText className="text-[#F472B6]" size={20} />, 
-            label: 'Пользовательское соглашение', 
-            bg: 'bg-[#F472B6]/10',
-            onClick: () => setIsTermsOpen(true)
-          },
-        ].map((item, index) => {
+        {(
+          [
+            { 
+              /* 
+                Пункт "Оплата" 
+                Назначение: Управление способами оплаты и автопродлением.
+              */
+              icon: <CreditCard className="text-[#F55128]" size={20} />, 
+              label: 'Оплата', 
+              bg: 'bg-[#F55128]/10', 
+              onClick: () => setIsPaymentOpen(true)
+            },
+            { 
+              /* 
+                Пункт "Мои транзакции" 
+                Назначение: Просмотр истории платежей.
+              */
+              icon: <List className="text-[#F55128]" size={20} />, 
+              label: 'Мои транзакции', 
+              bg: 'bg-[#F55128]/10',
+              onClick: () => setIsTransactionsOpen(true)
+            },
+            { 
+              /* 
+                Пункт "Реферальная программа" 
+                Назначение: Просмотр статистики приглашенных друзей и бонусов.
+              */
+              icon: <Users className="text-[#A78BFA]" size={20} />, 
+              label: 'Реферальная программа', 
+              bg: 'bg-[#A78BFA]/10',
+              onClick: () => setIsReferralOpen(true)
+            },
+            { 
+              /* 
+                Пункт "Связаться с поддержкой" 
+                Назначение: Прямой переход в чат поддержки.
+              */
+              icon: <MessageSquare className="text-[#D9A14E]" size={20} />, 
+              label: 'Связаться с поддержкой', 
+              bg: 'bg-[#D9A14E]/10',
+              onClick: handleSupportClick
+            },
+            { 
+              /* 
+                Пункт "Пользовательское соглашение" 
+                Назначение: Юридическая информация и правила сервиса.
+              */
+              icon: <FileText className="text-[#F472B6]" size={20} />, 
+              label: 'Пользовательское соглашение', 
+              bg: 'bg-[#F472B6]/10',
+              onClick: () => setIsTermsOpen(true)
+            },
+          ] as MenuItem[]
+        ).map((item, index) => {
           const content = (
             <>
               <div className={`${item.bg} p-2 rounded-lg`}>

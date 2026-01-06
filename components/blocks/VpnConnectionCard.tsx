@@ -58,7 +58,8 @@ export const VpnConnectionCard: React.FC = () => {
 
       try {
         // Динамический импорт qrcode для оптимизации размера бандла
-        const QRCode = await import('@/old/node_modules/@types/qrcode');
+        const QRCodeModule = await import('qrcode');
+        const QRCode = QRCodeModule.default || QRCodeModule;
         const url = await QRCode.toDataURL(vpnKey, {
           width: 256,
           margin: 2,
