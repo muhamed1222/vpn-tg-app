@@ -9,7 +9,7 @@ interface TermsModalProps {
 export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Пользовательское соглашение">
-      <div className="space-y-8 text-white/80 text-base leading-relaxed">
+      <div className="space-y-8 text-white/80 text-base leading-relaxed h-full">
         {/* 1. Условия использования */}
         <section className="space-y-3 css-dialog_content-item" style={{ '--index': 1 } as React.CSSProperties}>
           <h3 className="text-lg font-medium text-white">Условия использования</h3>

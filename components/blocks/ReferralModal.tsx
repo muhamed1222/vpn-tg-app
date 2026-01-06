@@ -73,7 +73,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Реферальная программа">
-      <div className="flex flex-col">
+      <div className="flex flex-col h-full">
         {/* 1. Инфо-карточка с условиями программы */}
         <div 
           className="bg-white/5 rounded-[16px] p-5 border border-white/5 mb-8 css-dialog_content-item"

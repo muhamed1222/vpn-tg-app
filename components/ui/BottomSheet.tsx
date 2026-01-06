@@ -163,7 +163,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       
       {/* Внутренний контейнер модалки */}
       <div 
-        className={`css-dialog_inner shadow-2xl border-t border-x border-white/5 flex flex-col h-[85vh] font-sans ${isDragging ? 'no-transition' : ''}`}
+        className={`css-dialog_inner shadow-2xl border-t border-x border-white/5 grid grid-rows-[auto,1fr] h-[85vh] font-sans ${isDragging ? 'no-transition' : ''}`}
         style={{ 
           transform: isDragging 
             ? `translate3d(0, ${dragY}px, 0)` 
@@ -173,7 +173,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       >
         {/* Область захвата (Handle + Title) */}
         <div 
-          className="shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+          className="select-none touch-none border-b border-white/5"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -185,7 +185,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
           </div>
 
           {/* Заголовок и кнопка закрытия */}
-          <div className="flex items-center justify-between px-6 pb-4 border-b border-white/5">
+          <div className="flex items-center justify-between px-6 pb-4">
             <h2 
               id="bottom-sheet-title"
               className="text-lg font-medium text-white pointer-events-none"
@@ -194,7 +194,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             </h2>
             <button 
               ref={closeButtonRef}
-              onPointerDown={(e) => e.stopPropagation()} // Предотвращаем срабатывание захвата свайпа на кнопке
+              onPointerDown={(e) => e.stopPropagation()} 
               onClick={(e) => {
                 e.stopPropagation();
                 onClose();
@@ -210,7 +210,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
 
         {/* Скроллируемая область контента */}
         <div 
-          className="flex-1 overflow-y-auto min-h-0 custom-scrollbar p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] touch-auto overscroll-contain" 
+          className="overflow-y-auto custom-scrollbar p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] touch-auto overscroll-contain" 
           style={{ WebkitOverflowScrolling: 'touch' }}
           ref={contentRef}
           role="document"
