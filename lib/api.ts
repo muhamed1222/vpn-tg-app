@@ -241,6 +241,7 @@ export const api = {
     name: string;
     days: number;
     price_stars: number;
+    price_rub?: number;
   }>>('tariffs', { method: 'GET' }),
 };
 
