@@ -46,8 +46,12 @@ export const config = {
     baseUrl: typeof window !== 'undefined' ? '' : getClientEnvVar('NEXT_PUBLIC_API_BASE_URL', 'https://api.outlivion.space'),
   },
   payment: {
-    redirectUrl: getClientEnvVar('NEXT_PUBLIC_PAYMENT_REDIRECT_URL', 'https://redirect.ultima.foundation'),
-    subscriptionBaseUrl: getClientEnvVar('NEXT_PUBLIC_SUBSCRIPTION_BASE_URL', 'https://gate.ultima.foundation'),
+    // URL для редиректа deep link (если используется)
+    // Если не используется, можно оставить пустым или использовать прямой subscriptionBaseUrl
+    redirectUrl: getClientEnvVar('NEXT_PUBLIC_PAYMENT_REDIRECT_URL', ''),
+    // Базовый URL сервера подписок (Marzban)
+    // Подписки проксируются через /api/sub/:token
+    subscriptionBaseUrl: getClientEnvVar('NEXT_PUBLIC_SUBSCRIPTION_BASE_URL', 'https://vpn.outlivion.space'),
   },
   support: {
     telegramUrl: getClientEnvVar('NEXT_PUBLIC_SUPPORT_TELEGRAM_URL', 'https://t.me/outlivion_support'),

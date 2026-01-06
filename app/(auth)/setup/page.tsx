@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plug, ChevronLeft, CloudDownload, ArrowRight, Plus, CirclePlus, Check } from 'lucide-react';
 import Link from 'next/link';
 import { getTelegramWebApp, getTelegramPlatform } from '@/lib/telegram';
 import { InfoModal } from '@/components/blocks/InfoModal';
 import { config } from '@/lib/config';
 import { SUBSCRIPTION_CONFIG, APP_STORE_URLS, DEEP_LINK_PROTOCOL } from '@/lib/constants';
+import { api } from '@/lib/api';
 
 /**
  * SetupPage - Экран пошаговой настройки VPN (Onboarding).
@@ -19,6 +20,8 @@ import { SUBSCRIPTION_CONFIG, APP_STORE_URLS, DEEP_LINK_PROTOCOL } from '@/lib/c
 export default function SetupPage() {
   const [step, setStep] = useState(1);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [subscriptionUrl, setSubscriptionUrl] = useState<string | null>(null);
+  
   // Инициализируем платформу сразу, без useEffect
   const [platform] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -26,6 +29,24 @@ export default function SetupPage() {
     }
     return '...';
   });
+
+  // Загружаем реальную ссылку на подписку пользователя
+  useEffect(() => {
+    const loadSubscriptionUrl = async () => {
+      try {
+        const configData = await api.getUserConfig();
+        if (configData.ok && configData.config) {
+          // configData.config уже содержит полный URL на подписку
+          setSubscriptionUrl(configData.config);
+        }
+      } catch (error) {
+        console.error('Failed to load subscription URL:', error);
+        // Используем дефолтную ссылку при ошибке
+        setSubscriptionUrl(`${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`);
+      }
+    };
+    loadSubscriptionUrl();
+  }, []);
 
   /* 
     Обработчик для установки на другое устройство.
@@ -55,7 +76,21 @@ export default function SetupPage() {
     для автоматического импорта конфигурации.
   */
   const handleAddSubscription = () => {
-    const subUrl = `${config.payment.redirectUrl}/?url=${DEEP_LINK_PROTOCOL}/${config.payment.subscriptionBaseUrl}/s/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}#UltimaVPN`;
+    // Используем реальную ссылку на подписку пользователя
+    const userSubscriptionUrl = subscriptionUrl || `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
+    
+    // Формируем deep link для автоматического импорта в приложение
+    let subUrl: string;
+    
+    if (config.payment.redirectUrl) {
+      // Используем редирект для deep link
+      subUrl = `${config.payment.redirectUrl}/?url=${DEEP_LINK_PROTOCOL}/${userSubscriptionUrl}#OutlivionVPN`;
+    } else {
+      // Прямой deep link (убираем http:// или https:// для протокола happ://)
+      const cleanUrl = userSubscriptionUrl.replace(/^https?:\/\//, '');
+      subUrl = `${DEEP_LINK_PROTOCOL}/${cleanUrl}#OutlivionVPN`;
+    }
+    
     const webApp = getTelegramWebApp();
     if (webApp) {
       webApp.openLink(subUrl);
@@ -91,12 +126,19 @@ export default function SetupPage() {
   };
 
   const handleCopyLinkFallback = () => {
-    const subUrl = `${config.payment.subscriptionBaseUrl}/s/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}#UltimaVPN`;
+    // Используем реальную ссылку на подписку пользователя
+    const subUrl = subscriptionUrl || `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
     navigator.clipboard.writeText(subUrl);
     
     const webApp = getTelegramWebApp();
     if (webApp) {
-      webApp.showAlert('Ссылка скопирована для ручного ввода!');
+      try {
+        if (typeof webApp.showAlert === 'function') {
+          webApp.showAlert('Ссылка скопирована для ручного ввода!');
+        }
+      } catch (e) {
+        // Игнорируем ошибки
+      }
     }
   };
 
