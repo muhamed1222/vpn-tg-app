@@ -60,10 +60,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText('https://ultm.app/QEbFPbbh');
-  };
-
   interface MenuItem {
     icon: React.ReactNode;
     label: string;
@@ -222,22 +218,6 @@ export default function ProfilePage() {
       {/* VPN Connection Card */}
       <div className="mb-6">
         <VpnConnectionCard />
-      </div>
-
-      {/* Subscription Link Card */}
-      <div className="bg-[#121212] rounded-[16px] p-6 border border-white/5 mb-6">
-        <h2 className="text-base font-medium mb-4 text-white/90">
-          Ссылка на подписку для ручного ввода:
-        </h2>
-        <button
-          onClick={handleCopyLink}
-          className="w-full bg-black/40 rounded-[10px] p-4 flex items-center justify-between border border-white/5 active:bg-black/60 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20"
-          aria-label="Скопировать ссылку на подписку"
-          type="button"
-        >
-          <code className="text-[#F55128] text-base">https://ultm.app/QEbFPbbh</code>
-          <Copy size={20} className="text-white/40" aria-hidden="true" />
-        </button>
       </div>
 
       {/* Bottom Action Button */}
