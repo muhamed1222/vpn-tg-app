@@ -37,7 +37,7 @@ export const apiFetch = async <T = unknown>(
 
   const headers = {
     'Content-Type': 'application/json',
-    'X-Telegram-Init-Data': initData,
+    'Authorization': initData, // Бэкенд ожидает initData в заголовке Authorization
     ...options.headers,
   };
 
@@ -88,29 +88,121 @@ export const apiFetch = async <T = unknown>(
 };
 
 export const api = {
-  auth: () => apiFetch<{
-    user: {
+  // Получение данных пользователя и подписки
+  auth: async () => {
+    const data = await apiFetch<{
       id: number;
       firstName: string;
-      username?: string;
+      subscription: {
+        is_active: boolean;
+        expires_at: number | null;
+        vless_key?: string;
+      };
+    }>('me', { method: 'GET' });
+    
+    // Преобразуем формат для совместимости с фронтендом
+    return {
+      user: {
+        id: data.id,
+        firstName: data.firstName,
+        username: undefined,
+      },
+      subscription: {
+        status: data.subscription.is_active && data.subscription.expires_at && data.subscription.expires_at > Date.now()
+          ? 'active' as const
+          : data.subscription.expires_at && data.subscription.expires_at <= Date.now()
+          ? 'expired' as const
+          : 'none' as const,
+        expiresAt: data.subscription.expires_at ? new Date(data.subscription.expires_at).toISOString().split('T')[0] : undefined,
+      },
     };
-    subscription: {
-      status: 'active' | 'expired' | 'none';
-      expiresAt?: string;
+  },
+  
+  // Получение VPN конфигурации
+  getUserConfig: async () => {
+    const userData = await apiFetch<{
+      id: number;
+      firstName: string;
+      subscription: {
+        is_active: boolean;
+        expires_at: number | null;
+        vless_key?: string;
+      };
+    }>('me', { method: 'GET' });
+    
+    const isActive = userData.subscription.is_active && 
+                     userData.subscription.expires_at && 
+                     userData.subscription.expires_at > Date.now();
+    
+    return {
+      ok: isActive && !!userData.subscription.vless_key,
+      config: userData.subscription.vless_key || '',
     };
-  }>('tg/auth', { method: 'POST' }),
+  },
   
-  getUserConfig: () => apiFetch<{
-    ok: boolean;
-    config: string;
-  }>('user/config', { method: 'GET' }),
+  // Получение статуса пользователя и статистики
+  getUserStatus: async () => {
+    // Параллельно получаем данные пользователя и статистику
+    const [userData, billing] = await Promise.all([
+      apiFetch<{
+        id: number;
+        firstName: string;
+        subscription: {
+          is_active: boolean;
+          expires_at: number | null;
+        };
+      }>('me', { method: 'GET' }),
+      apiFetch<{
+        usedBytes: number;
+        limitBytes: number | null;
+        averagePerDayBytes: number;
+        planId: string | null;
+        planName: string | null;
+        period: {
+          start: number | null;
+          end: number | null;
+        };
+      }>('billing', { method: 'GET' }).catch(() => ({
+        usedBytes: 0,
+        limitBytes: null,
+        averagePerDayBytes: 0,
+        planId: null,
+        planName: null,
+        period: { start: null, end: null },
+      })),
+    ]);
+    
+    const isActive = userData.subscription.is_active && 
+                     userData.subscription.expires_at && 
+                     userData.subscription.expires_at > Date.now();
+    
+    return {
+      ok: isActive,
+      status: isActive ? 'active' as const : 'disabled' as const,
+      expiresAt: userData.subscription.expires_at || null,
+      usedTraffic: billing.usedBytes || 0,
+      dataLimit: billing.limitBytes || 0,
+    };
+  },
   
-  getUserStatus: () => apiFetch<{
-    ok: boolean;
-    status: 'active' | 'disabled' | 'not_found' | 'on_hold';
-    expiresAt: number | null;
-    usedTraffic: number;
-    dataLimit: number;
-  }>('user/status', { method: 'GET' }),
+  // Получение истории платежей
+  getPaymentsHistory: () => apiFetch<Array<{
+    id: string;
+    orderId: string;
+    amount: number;
+    currency: string;
+    date: number;
+    status: 'success' | 'pending' | 'fail';
+    planId: string;
+    planName: string;
+  }>>('payments/history', { method: 'GET' }),
+  
+  // Получение тарифов
+  getTariffs: () => apiFetch<Array<{
+    id: string;
+    name: string;
+    days: number;
+    price_stars: number;
+  }>>('tariffs', { method: 'GET' }),
 };
 

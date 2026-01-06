@@ -39,7 +39,7 @@ export const serverConfig = {
 // Клиентский конфиг (доступен везде)
 export const config = {
   api: {
-    baseUrl: getClientEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:3000'),
+    baseUrl: getClientEnvVar('NEXT_PUBLIC_API_BASE_URL', 'https://vpn.outlivion.space'),
   },
   payment: {
     redirectUrl: getClientEnvVar('NEXT_PUBLIC_PAYMENT_REDIRECT_URL', 'https://redirect.ultima.foundation'),

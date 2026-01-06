@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateTelegramInitData, extractUserFromInitData } from '@/lib/telegram-validation';
+import { validateTelegramInitData } from '@/lib/telegram-validation';
 import { serverConfig } from '@/lib/config';
+
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://vpn.outlivion.space';
 
 /**
  * API Route для получения VPN конфигурации пользователя
  * 
- * Валидирует initData от Telegram и возвращает VPN ключ пользователя
+ * Проксирует запрос на бэкенд API для получения VPN ключа
  */
 export async function GET(request: NextRequest) {
   try {
     // Получаем initData из заголовков
-    const initData = request.headers.get('X-Telegram-Init-Data');
+    const initData = request.headers.get('X-Telegram-Init-Data') || 
+                     request.headers.get('Authorization');
 
     if (!initData) {
       return NextResponse.json(
@@ -32,39 +35,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Извлекаем данные пользователя
-    const telegramUser = extractUserFromInitData(initData);
-
-    if (!telegramUser) {
-      return NextResponse.json(
-        { error: 'Failed to extract user data' },
-        { status: 400 }
-      );
-    }
-
-    // TODO: Здесь должна быть интеграция с реальным бэкендом
-    // В production здесь должен быть запрос к вашему API для получения VPN конфигурации
-    // Пример:
-    // const backendResponse = await fetch(`${config.api.baseUrl}/api/user/config`, {
-    //   method: 'GET',
-    //   headers: {
-    //     'Authorization': `Bearer ${telegramUser.id}`,
-    //   },
-    // });
-    // const configData = await backendResponse.json();
-
-    // Временная заглушка (убрать в production)
-    // Возвращаем пустой ответ, так как реальный VPN ключ должен приходить с бэкенда
-    return NextResponse.json({
-      ok: false,
-      config: null,
+    // Получаем данные пользователя, включая VPN ключ
+    const userResponse = await fetch(`${BACKEND_API_URL}/api/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': initData,
+        'Content-Type': 'application/json',
+      },
     });
 
-    // Когда будет готов бэкенд, раскомментировать:
-    // return NextResponse.json({
-    //   ok: true,
-    //   config: configData.vpnKey, // VPN ключ в формате строки
-    // });
+    if (!userResponse.ok) {
+      return NextResponse.json({
+        ok: false,
+        config: null,
+      });
+    }
+
+    const userData = await userResponse.json();
+    const vlessKey = userData.subscription?.vless_key || null;
+    const isActive = userData.subscription?.is_active && 
+                     userData.subscription?.expires_at && 
+                     userData.subscription.expires_at > Date.now();
+
+    return NextResponse.json({
+      ok: isActive && !!vlessKey,
+      config: vlessKey,
+    });
   } catch (error) {
     console.error('Config API error:', error);
     return NextResponse.json(

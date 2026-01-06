@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateTelegramInitData, extractUserFromInitData } from '@/lib/telegram-validation';
+import { validateTelegramInitData } from '@/lib/telegram-validation';
 import { serverConfig } from '@/lib/config';
+
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://vpn.outlivion.space';
 
 /**
  * API Route для авторизации через Telegram WebApp
  * 
- * Валидирует initData от Telegram и возвращает данные пользователя и подписки
+ * Проксирует запрос на бэкенд API для получения данных пользователя и подписки
  */
 export async function POST(request: NextRequest) {
   try {
     // Получаем initData из заголовков
-    const initData = request.headers.get('X-Telegram-Init-Data');
+    const initData = request.headers.get('X-Telegram-Init-Data') || 
+                     request.headers.get('Authorization');
 
     if (!initData) {
       return NextResponse.json(
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Валидируем подпись initData
+    // Валидируем подпись initData на стороне Next.js для безопасности
     const isValid = validateTelegramInitData(
       initData,
       serverConfig.telegram.botToken
@@ -32,47 +35,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Извлекаем данные пользователя
-    const telegramUser = extractUserFromInitData(initData);
+    // Проксируем запрос на бэкенд API
+    const backendResponse = await fetch(`${BACKEND_API_URL}/api/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': initData,
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (!telegramUser) {
+    if (!backendResponse.ok) {
+      const errorData = await backendResponse.json().catch(() => ({}));
       return NextResponse.json(
-        { error: 'Failed to extract user data' },
-        { status: 400 }
+        { error: errorData.error || 'Backend API error' },
+        { status: backendResponse.status }
       );
     }
 
-    // TODO: Здесь должна быть интеграция с реальным бэкендом
-    // Пока что возвращаем данные на основе валидного Telegram пользователя
-    // В production здесь должен быть запрос к вашему API для получения подписки
+    const backendData = await backendResponse.json();
 
-    // Имитация задержки сети (убрать в production)
-    if (serverConfig.env.isDevelopment) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
-    // TODO: Заменить на реальный запрос к бэкенду
-    // const backendResponse = await fetch(`${config.api.baseUrl}/api/user/subscription`, {
-    //   method: 'GET',
-    //   headers: {
-    //     'Authorization': `Bearer ${telegramUser.id}`,
-    //   },
-    // });
-    // const subscriptionData = await backendResponse.json();
-
-    // Временная заглушка (убрать в production)
-    const subscriptionData = {
-      status: 'none' as const,
-      expiresAt: undefined,
-    };
+    // Преобразуем формат ответа для совместимости с фронтендом
+    const isActive = backendData.subscription?.is_active && 
+                     backendData.subscription?.expires_at && 
+                     backendData.subscription.expires_at > Date.now();
+    
+    const isExpired = backendData.subscription?.expires_at && 
+                      backendData.subscription.expires_at <= Date.now();
 
     return NextResponse.json({
       user: {
-        id: telegramUser.id,
-        firstName: telegramUser.first_name,
-        username: telegramUser.username,
+        id: backendData.id,
+        firstName: backendData.firstName,
+        username: undefined,
       },
-      subscription: subscriptionData,
+      subscription: {
+        status: isActive ? 'active' as const : isExpired ? 'expired' as const : 'none' as const,
+        expiresAt: backendData.subscription?.expires_at 
+          ? new Date(backendData.subscription.expires_at).toISOString().split('T')[0]
+          : undefined,
+      },
     });
   } catch (error) {
     console.error('Auth API error:', error);

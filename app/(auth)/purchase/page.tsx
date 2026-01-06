@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { PurchaseConfirmModal } from '@/components/blocks/PurchaseConfirmModal';
 import { SUBSCRIPTION_CONFIG } from '@/lib/constants';
+import { api } from '@/lib/api';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface Plan {
   id: string;
@@ -15,20 +17,100 @@ interface Plan {
   oldPrice?: number;
 }
 
-const PLANS: Plan[] = [
-  { id: '1m', duration: '1 месяц', totalPrice: 150, monthlyPrice: 150 },
-  { id: '3m', duration: '3 месяца', totalPrice: 390, monthlyPrice: 130 },
-  { id: '6m', duration: '6 месяцев', totalPrice: 720, monthlyPrice: 120, isPopular: true, oldPrice: 900 },
-  { id: '1y', duration: '1 год', totalPrice: 1320, monthlyPrice: 110 },
-];
+// Маппинг ID тарифов с бэкенда на локализованные названия
+const PLAN_DURATION_MAP: Record<string, string> = {
+  '1m': '1 месяц',
+  '3m': '3 месяца',
+  '6m': '6 месяцев',
+  '1y': '1 год',
+};
+
+// Конвертация дней в локализованное название
+const getDurationFromDays = (days: number): string => {
+  if (days === 30) return '1 месяц';
+  if (days === 90) return '3 месяца';
+  if (days === 180) return '6 месяцев';
+  if (days === 365) return '1 год';
+  return `${days} дней`;
+};
 
 export default function PurchasePage() {
   // Выбранный ID тарифного плана (по умолчанию 6 месяцев)
   const [selectedPlanId, setSelectedPlanId] = useState('6m');
   // Состояние модального окна подтверждения
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  // Тарифы с бэкенда
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedPlan = PLANS.find(p => p.id === selectedPlanId) || PLANS[2];
+  // Загружаем тарифы с бэкенда
+  useEffect(() => {
+    const loadTariffs = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const tariffs = await api.getTariffs();
+        
+        // Преобразуем тарифы с бэкенда в формат приложения
+        const transformedPlans: Plan[] = tariffs.map((tariff) => {
+          // Используем ID с бэкенда напрямую, или определяем по количеству дней
+          let planId = tariff.id;
+          if (!planId || !['1m', '3m', '6m', '1y'].includes(planId)) {
+            // Определяем ID тарифа по количеству дней, если ID не подходит
+            if (tariff.days === 30 || tariff.days === 28 || tariff.days === 31) planId = '1m';
+            else if (tariff.days === 90 || tariff.days === 84 || tariff.days === 93) planId = '3m';
+            else if (tariff.days === 180 || tariff.days === 183) planId = '6m';
+            else if (tariff.days === 365 || tariff.days === 366) planId = '1y';
+            else planId = tariff.id; // Используем оригинальный ID если не распознали
+          }
+          
+          // Конвертируем Stars в рубли (1 Star = 1 рубль, но может быть другой курс)
+          // Если на бэкенде цены уже в рублях, используем их напрямую
+          const totalPrice = tariff.price_stars;
+          const monthlyPrice = Math.round(totalPrice / (tariff.days / 30));
+          
+          return {
+            id: planId,
+            duration: getDurationFromDays(tariff.days),
+            totalPrice,
+            monthlyPrice,
+            isPopular: planId === '6m' || tariff.days === 180, // 6 месяцев - популярный тариф
+          };
+        });
+
+        // Сортируем тарифы по продолжительности
+        transformedPlans.sort((a, b) => {
+          const order = ['1m', '3m', '6m', '1y'];
+          return order.indexOf(a.id) - order.indexOf(b.id);
+        });
+
+        setPlans(transformedPlans);
+        
+        // Устанавливаем выбранный тариф по умолчанию (6 месяцев)
+        if (transformedPlans.length > 0) {
+          const defaultPlan = transformedPlans.find(p => p.id === '6m') || transformedPlans[0];
+          setSelectedPlanId(defaultPlan.id);
+        }
+      } catch (err) {
+        console.error('Failed to load tariffs:', err);
+        setError('Не удалось загрузить тарифы. Пожалуйста, попробуйте позже.');
+        // Fallback на дефолтные тарифы при ошибке
+        setPlans([
+          { id: '1m', duration: '1 месяц', totalPrice: 150, monthlyPrice: 150 },
+          { id: '3m', duration: '3 месяца', totalPrice: 390, monthlyPrice: 130 },
+          { id: '6m', duration: '6 месяцев', totalPrice: 720, monthlyPrice: 120, isPopular: true },
+          { id: '1y', duration: '1 год', totalPrice: 1320, monthlyPrice: 110 },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTariffs();
+  }, []);
+
+  const selectedPlan = plans.find(p => p.id === selectedPlanId) || plans[0];
 
   return (
     <main className="min-h-screen bg-black text-white p-4 font-sans select-none flex flex-col">
@@ -40,6 +122,12 @@ export default function PurchasePage() {
       </div>
 
       <h1 className="text-xl font-medium mb-6 px-2">Покупка подписки</h1>
+
+      {error && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-[10px] p-4 mb-4 text-yellow-500 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* 
         Инфо-блок об устройствах 
@@ -58,8 +146,13 @@ export default function PurchasePage() {
       </div>
 
       {/* Сетка тарифных планов */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {PLANS.map((plan) => {
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <LoadingSpinner size="large" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {plans.map((plan) => {
           const isSelected = selectedPlanId === plan.id;
           return (
             <button
@@ -103,36 +196,44 @@ export default function PurchasePage() {
             </button>
           );
         })}
-      </div>
+        </div>
+      )}
 
       <div className="flex-1" />
 
       {/* Кнопка оплаты, вызывающая модальное окно подтверждения */}
-      <button 
-        onClick={() => setIsConfirmOpen(true)}
-        className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] p-5 flex items-center justify-center gap-3 group shadow-lg shadow-[#F55128]/20 focus:outline-none focus:ring-2 focus:ring-[#F55128]/50"
-        aria-label={`Продолжить оформление подписки за ${selectedPlan.totalPrice} рублей`}
-        type="button"
-      >
-        <span className="text-base font-bold text-white">
-          Продолжить за {selectedPlan.totalPrice} ₽
-        </span>
-        {selectedPlan.oldPrice && (
-          <span className="text-sm font-medium text-white/40 line-through">
-            {selectedPlan.oldPrice} ₽
-          </span>
-        )}
-      </button>
+      {selectedPlan && (
+        <>
+          <button 
+            onClick={() => setIsConfirmOpen(true)}
+            disabled={loading || !selectedPlan}
+            className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] p-5 flex items-center justify-center gap-3 group shadow-lg shadow-[#F55128]/20 focus:outline-none focus:ring-2 focus:ring-[#F55128]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={`Продолжить оформление подписки за ${selectedPlan?.totalPrice || 0} рублей`}
+            type="button"
+          >
+            <span className="text-base font-bold text-white">
+              Продолжить за {selectedPlan?.totalPrice || 0} ₽
+            </span>
+            {selectedPlan?.oldPrice && (
+              <span className="text-sm font-medium text-white/40 line-through">
+                {selectedPlan.oldPrice} ₽
+              </span>
+            )}
+          </button>
+        </>
+      )}
       <div className="h-4" />
 
-      <PurchaseConfirmModal 
-        isOpen={isConfirmOpen}
-        onClose={() => setIsConfirmOpen(false)}
-        price={selectedPlan.totalPrice}
-        duration={selectedPlan.duration}
-        devices={SUBSCRIPTION_CONFIG.DEFAULT_DEVICES_COUNT}
-        untilDate="6 февраля 2026"
-      />
+      {selectedPlan && (
+        <PurchaseConfirmModal 
+          isOpen={isConfirmOpen}
+          onClose={() => setIsConfirmOpen(false)}
+          price={selectedPlan.totalPrice}
+          duration={selectedPlan.duration}
+          devices={SUBSCRIPTION_CONFIG.DEFAULT_DEVICES_COUNT}
+          untilDate="6 февраля 2026"
+        />
+      )}
     </main>
   );
 }

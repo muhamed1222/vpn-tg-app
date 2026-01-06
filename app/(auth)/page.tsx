@@ -45,6 +45,7 @@ const formatExpirationDate = (dateString?: string): string => {
 export default function Home() {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isOnlineStatus, setIsOnlineStatus] = useState(true);
+  const [minPrice, setMinPrice] = useState<number>(SUBSCRIPTION_CONFIG.MIN_PRICE);
   
   // Инициализируем платформу с fallback
   const [platform] = useState(() => {
@@ -64,6 +65,25 @@ export default function Home() {
   const formattedExpirationDate = useMemo(() => {
     return formatExpirationDate(subscription?.expiresAt);
   }, [subscription?.expiresAt]);
+
+  // Загружаем минимальную цену из тарифов
+  useEffect(() => {
+    const loadMinPrice = async () => {
+      try {
+        const { api } = await import('@/lib/api');
+        const tariffs = await api.getTariffs();
+        if (tariffs.length > 0) {
+          // Находим минимальную цену среди всех тарифов
+          const min = Math.min(...tariffs.map(t => t.price_stars));
+          setMinPrice(min);
+        }
+      } catch (error) {
+        console.error('Failed to load min price:', error);
+        // Оставляем дефолтное значение при ошибке
+      }
+    };
+    loadMinPrice();
+  }, []);
 
   useEffect(() => {
     // Инициализируем Telegram WebApp с проверкой доступности
@@ -262,8 +282,8 @@ export default function Home() {
               </div>
               <span className="text-base font-medium">Купить подписку</span>
             </div>
-            <span className="text-base font-medium opacity-80 group-hover:opacity-100 transition-opacity" aria-label={`Цена от ${SUBSCRIPTION_CONFIG.MIN_PRICE} рублей`}>
-              от {SUBSCRIPTION_CONFIG.MIN_PRICE} ₽
+            <span className="text-base font-medium opacity-80 group-hover:opacity-100 transition-opacity" aria-label={`Цена от ${minPrice} рублей`}>
+              от {minPrice} ₽
             </span>
           </Link>
 
