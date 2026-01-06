@@ -23,9 +23,9 @@ export const DEEP_LINK_PROTOCOL = 'happ://add' as const;
 
 // Animation Durations (ms)
 export const ANIMATION_DURATIONS = {
-  MODAL_CLOSE: 850,
-  BACKDROP: 400,
-  MODAL: 850,
+  MODAL_CLOSE: 350,
+  BACKDROP: 300,
+  MODAL: 350,
 } as const;
 
 // API Configuration

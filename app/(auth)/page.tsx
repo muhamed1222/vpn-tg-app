@@ -11,6 +11,7 @@ import { SUBSCRIPTION_CONFIG } from '@/lib/constants';
 import { checkTelegramWebApp, getPlatformSafe, isOnline, subscribeToOnlineStatus } from '@/lib/telegram-fallback';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SubscriptionCardSkeleton } from '@/components/ui/SkeletonLoader';
+import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 
 // Lazy loading для модалок - загружаются только когда нужны
 const SupportModal = lazy(() =>
@@ -119,8 +120,10 @@ export default function Home() {
       role="main"
       aria-label="Главная страница Outlivion VPN"
     >
+      <AnimatedBackground />
+
       {/* Logo Section */}
-      <div className="relative h-fit flex items-center justify-center">
+      <div className="relative h-fit flex items-center justify-center z-10">
         {/* Background Circles - оптимизированный компонент */}
         <BackgroundCircles>
           <div className="relative w-32 h-32 flex items-center justify-center">
@@ -130,7 +133,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Main Card */}
-      <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 bg-[#121212] rounded-[16px] px-[14px] py-[14px] shadow-2xl border border-white/5 backdrop-blur-[7px]">
+      <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 bg-[#121212]/80 rounded-[16px] px-[14px] py-[14px] shadow-2xl border border-white/5 backdrop-blur-[12px] z-10">
         {/* 
           Header Info - Информационный блок с основными статусами
           
@@ -245,12 +248,12 @@ export default function Home() {
                   - Позиция: под датой истечения, выравнивание по правому краю
                 */}
                 <p className={`text-xs font-medium ${subscription?.status === 'active'
-                    ? 'text-[#F55128]'
-                    : subscription?.status === 'expired'
-                      ? 'text-[#D9A14E]'
-                      : subscription?.status === 'none'
-                        ? 'text-white/60'
-                        : 'text-white/40'
+                  ? 'text-[#F55128]'
+                  : subscription?.status === 'expired'
+                    ? 'text-[#D9A14E]'
+                    : subscription?.status === 'none'
+                      ? 'text-white/60'
+                      : 'text-white/40'
                   }`}>
                   {subscription?.status === 'active'
                     ? 'активна'

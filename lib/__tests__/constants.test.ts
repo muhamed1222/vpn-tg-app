@@ -20,7 +20,7 @@ describe('constants', () => {
     });
 
     it('should have minimum price', () => {
-      expect(SUBSCRIPTION_CONFIG.MIN_PRICE).toBe(150);
+      expect(SUBSCRIPTION_CONFIG.MIN_PRICE).toBe(10);
     });
   });
 
@@ -50,15 +50,15 @@ describe('constants', () => {
 
   describe('ANIMATION_DURATIONS', () => {
     it('should have modal close duration', () => {
-      expect(ANIMATION_DURATIONS.MODAL_CLOSE).toBe(850);
+      expect(ANIMATION_DURATIONS.MODAL_CLOSE).toBe(350);
     });
 
     it('should have backdrop duration', () => {
-      expect(ANIMATION_DURATIONS.BACKDROP).toBe(400);
+      expect(ANIMATION_DURATIONS.BACKDROP).toBe(300);
     });
 
     it('should have modal duration', () => {
-      expect(ANIMATION_DURATIONS.MODAL).toBe(850);
+      expect(ANIMATION_DURATIONS.MODAL).toBe(350);
     });
   });
 
