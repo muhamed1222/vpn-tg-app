@@ -13,7 +13,7 @@ export type AnalyticsEvent =
   | { type: 'subscription_status_change'; status: string }
   | { type: 'error'; error: string; context?: string }
   | { type: 'api_call'; endpoint: string; success: boolean }
-  | { type: 'link_click'; url: string; type: 'external' | 'internal' };
+  | { type: 'link_click'; url: string; linkType: 'external' | 'internal' };
 
 /**
  * Отправляет событие аналитики
@@ -65,7 +65,7 @@ export const analytics = {
   apiCall: (endpoint: string, success: boolean) => 
     trackEvent({ type: 'api_call', endpoint, success }),
   
-  linkClick: (url: string, type: 'external' | 'internal' = 'external') => 
-    trackEvent({ type: 'link_click', url, type }),
+  linkClick: (url: string, linkType: 'external' | 'internal' = 'external') => 
+    trackEvent({ type: 'link_click', url, linkType }),
 };
 
