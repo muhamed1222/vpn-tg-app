@@ -87,7 +87,7 @@ export default function ProfilePage() {
         Клик по ID копирует его в буфер обмена для обращения в поддержку.
         При копировании иконка временно меняется на галочку.
       */}
-      <div className="text-center mb-8">
+      <div className="flex flex-col items-center text-center mb-8">
         <h1 className="text-xl font-medium mb-1">
           {user?.firstName || 'Пользователь'}
         </h1>
