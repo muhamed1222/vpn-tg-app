@@ -29,6 +29,7 @@ export interface TelegramWebApp {
   headerColor: string;
   backgroundColor: string;
   isClosingConfirmationEnabled: boolean;
+  isVersionAtLeast(version: string): boolean;
   BackButton: BackButton;
   MainButton: MainButton;
   HapticFeedback: HapticFeedback;
