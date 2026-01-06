@@ -133,32 +133,38 @@ export const apiFetch = async <T = unknown>(
 export const api = {
   // Получение данных пользователя и подписки
   auth: async () => {
-    const data = await apiFetch<{
-      id: number;
-      firstName: string;
-      subscription: {
-        is_active: boolean;
-        expires_at: number | null;
-        vless_key?: string;
+    try {
+      const data = await apiFetch<{
+        id: number;
+        firstName: string;
+        subscription: {
+          is_active: boolean;
+          expires_at: number | null;
+          vless_key?: string;
+        };
+      }>('me', { method: 'GET' });
+      
+      // Преобразуем формат для совместимости с фронтендом
+      return {
+        user: {
+          id: data.id,
+          firstName: data.firstName,
+          username: undefined,
+        },
+        subscription: {
+          status: data.subscription.is_active && data.subscription.expires_at && data.subscription.expires_at > Date.now()
+            ? 'active' as const
+            : data.subscription.expires_at && data.subscription.expires_at <= Date.now()
+            ? 'expired' as const
+            : 'none' as const,
+          expiresAt: data.subscription.expires_at ? new Date(data.subscription.expires_at).toISOString().split('T')[0] : undefined,
+        },
       };
-    }>('me', { method: 'GET' });
-    
-    // Преобразуем формат для совместимости с фронтендом
-    return {
-      user: {
-        id: data.id,
-        firstName: data.firstName,
-        username: undefined,
-      },
-      subscription: {
-        status: data.subscription.is_active && data.subscription.expires_at && data.subscription.expires_at > Date.now()
-          ? 'active' as const
-          : data.subscription.expires_at && data.subscription.expires_at <= Date.now()
-          ? 'expired' as const
-          : 'none' as const,
-        expiresAt: data.subscription.expires_at ? new Date(data.subscription.expires_at).toISOString().split('T')[0] : undefined,
-      },
-    };
+    } catch (error) {
+      // Логируем ошибку для отладки
+      console.error('[API auth] Error:', error);
+      throw error;
+    }
   },
   
   // Получение VPN конфигурации

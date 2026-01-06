@@ -59,6 +59,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Логируем для отладки (только в development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API /me] Backend response status:', backendResponse.status);
+      if (!backendResponse.ok) {
+        const errorText = await backendResponse.clone().text().catch(() => '');
+        console.error('[API /me] Backend error:', errorText);
+      }
+    }
+
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
       
