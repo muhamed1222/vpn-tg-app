@@ -81,17 +81,9 @@ export default function SetupPage() {
     // Используем реальную ссылку на подписку пользователя
     const userSubscriptionUrl = subscriptionUrl || `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
 
-    // Формируем deep link для автоматического импорта в приложение
-    let subUrl: string;
-
-    if (config.payment.redirectUrl) {
-      // Используем редирект для deep link
-      subUrl = `${config.payment.redirectUrl}/?url=${DEEP_LINK_PROTOCOL}/${userSubscriptionUrl}#OutlivionVPN`;
-    } else {
-      // Прямой deep link (убираем http:// или https:// для протокола happ://)
-      const cleanUrl = userSubscriptionUrl.replace(/^https?:\/\//, '');
-      subUrl = `${DEEP_LINK_PROTOCOL}/${cleanUrl}#OutlivionVPN`;
-    }
+    // Формируем deep link для автоматического импорта в v2raytun
+    // Формат: v2raytun://import/https://...#Name
+    const subUrl = `${DEEP_LINK_PROTOCOL}import/${userSubscriptionUrl}#OutlivionVPN`;
 
     const webApp = getTelegramWebApp();
     if (webApp) {

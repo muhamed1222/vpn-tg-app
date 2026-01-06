@@ -38,13 +38,13 @@ describe('constants', () => {
     });
 
     it('should have Desktop URL', () => {
-      expect(APP_STORE_URLS.Desktop).toContain('github.com');
+      expect(APP_STORE_URLS.Desktop).toContain('v2raytun.com');
     });
   });
 
   describe('DEEP_LINK_PROTOCOL', () => {
     it('should have correct protocol', () => {
-      expect(DEEP_LINK_PROTOCOL).toBe('happ://add');
+      expect(DEEP_LINK_PROTOCOL).toBe('v2raytun://');
     });
   });
 
