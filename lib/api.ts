@@ -32,7 +32,7 @@ export const apiFetch = async <T = unknown>(
     // Для некоторых эндпоинтов (например, тарифы) можно работать без авторизации
     // Но для безопасности лучше требовать initData
     throw new ApiException(
-      'Telegram WebApp not initialized',
+      'Telegram WebApp не инициализирован. Пожалуйста, откройте приложение через Telegram.',
       401
     );
   }
@@ -45,9 +45,15 @@ export const apiFetch = async <T = unknown>(
 
   try {
     // Выполняем запрос с retry и timeout
+    // Если baseUrl пустой (клиент), используем Next.js API роуты для проксирования
+    // Если baseUrl указан (сервер), делаем запрос напрямую на бэкенд
+    const apiUrl = config.api.baseUrl 
+      ? `${config.api.baseUrl}/api/${endpoint}`
+      : `/api/${endpoint}`;
+    
     const response = await withRetry(async () => {
       return await withTimeout(
-        fetch(`${config.api.baseUrl}/api/${endpoint}`, {
+        fetch(apiUrl, {
           ...options,
           headers,
         })
@@ -58,8 +64,34 @@ export const apiFetch = async <T = unknown>(
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      // Формируем понятное сообщение об ошибке
+      let errorMessage = data.error || data.message;
+      
+      if (!errorMessage) {
+        // Если нет сообщения в ответе, формируем по статусу
+        switch (response.status) {
+          case 401:
+            errorMessage = 'Ошибка авторизации. Пожалуйста, перезапустите приложение.';
+            break;
+          case 403:
+            errorMessage = 'Доступ запрещен. Проверьте права доступа.';
+            break;
+          case 404:
+            errorMessage = 'Запрашиваемый ресурс не найден.';
+            break;
+          case 500:
+            errorMessage = 'Ошибка сервера. Попробуйте позже.';
+            break;
+          case 503:
+            errorMessage = 'Сервис временно недоступен. Попробуйте позже.';
+            break;
+          default:
+            errorMessage = `Ошибка сервера (${response.status}). Попробуйте позже.`;
+        }
+      }
+      
       throw new ApiException(
-        data.error || `API error: ${response.statusText}`,
+        errorMessage,
         response.status
       );
     }
@@ -74,7 +106,16 @@ export const apiFetch = async <T = unknown>(
     // Обработка сетевых ошибок
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       throw new ApiException(
-        'Network error. Please check your connection.',
+        'Проблема с подключением к серверу. Проверьте интернет-соединение.',
+        0,
+        error
+      );
+    }
+
+    // Обработка ошибок CORS
+    if (error instanceof TypeError && error.message.includes('CORS')) {
+      throw new ApiException(
+        'Ошибка подключения к серверу. Попробуйте позже.',
         0,
         error
       );
@@ -82,7 +123,7 @@ export const apiFetch = async <T = unknown>(
 
     // Неизвестная ошибка
     throw new ApiException(
-      'An unexpected error occurred',
+      'Произошла непредвиденная ошибка. Попробуйте перезагрузить приложение.',
       500,
       error
     );

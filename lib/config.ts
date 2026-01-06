@@ -39,7 +39,9 @@ export const serverConfig = {
 // Клиентский конфиг (доступен везде)
 export const config = {
   api: {
-    baseUrl: getClientEnvVar('NEXT_PUBLIC_API_BASE_URL', 'https://vpn.outlivion.space'),
+    // Используем относительный путь для проксирования через Next.js API роуты
+    // Это избегает проблем с CORS и позволяет валидировать запросы на сервере
+    baseUrl: typeof window !== 'undefined' ? '' : getClientEnvVar('NEXT_PUBLIC_API_BASE_URL', 'https://api.outlivion.space'),
   },
   payment: {
     redirectUrl: getClientEnvVar('NEXT_PUBLIC_PAYMENT_REDIRECT_URL', 'https://redirect.ultima.foundation'),

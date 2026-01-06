@@ -5,11 +5,11 @@ import { serverConfig } from '@/lib/config';
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.outlivion.space';
 
 /**
- * API Route для авторизации через Telegram WebApp
+ * API Route для получения данных пользователя
  * 
- * Проксирует запрос на бэкенд API для получения данных пользователя и подписки
+ * Проксирует GET запрос на бэкенд API /api/me
  */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     // Получаем initData из заголовков
     const initData = request.headers.get('X-Telegram-Init-Data') || 
@@ -80,29 +80,11 @@ export async function POST(request: NextRequest) {
 
     const backendData = await backendResponse.json();
 
-    // Преобразуем формат ответа для совместимости с фронтендом
-    const isActive = backendData.subscription?.is_active && 
-                     backendData.subscription?.expires_at && 
-                     backendData.subscription.expires_at > Date.now();
-    
-    const isExpired = backendData.subscription?.expires_at && 
-                      backendData.subscription.expires_at <= Date.now();
-
-    return NextResponse.json({
-      user: {
-        id: backendData.id,
-        firstName: backendData.firstName,
-        username: undefined,
-      },
-      subscription: {
-        status: isActive ? 'active' as const : isExpired ? 'expired' as const : 'none' as const,
-        expiresAt: backendData.subscription?.expires_at 
-          ? new Date(backendData.subscription.expires_at).toISOString().split('T')[0]
-          : undefined,
-      },
-    });
+    // Возвращаем данные в формате бэкенда (без преобразования)
+    // Преобразование будет сделано в клиентском коде
+    return NextResponse.json(backendData);
   } catch (error) {
-    console.error('Auth API error:', error);
+    console.error('Me API error:', error);
     
     // Обработка сетевых ошибок
     if (error instanceof Error) {

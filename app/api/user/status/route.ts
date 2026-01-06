@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateTelegramInitData } from '@/lib/telegram-validation';
 import { serverConfig } from '@/lib/config';
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://vpn.outlivion.space';
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.outlivion.space';
 
 /**
  * API Route для получения статуса пользователя и статистики использования

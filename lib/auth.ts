@@ -50,21 +50,10 @@ export const login = async (): Promise<LoginResult> => {
     let errorMessage = 'Не удалось выполнить авторизацию';
 
     if (error instanceof ApiException) {
-      switch (error.status) {
-        case 401:
-          errorMessage = 'Ошибка авторизации. Пожалуйста, перезапустите приложение.';
-          break;
-        case 0:
-          errorMessage = 'Проблема с подключением к интернету. Проверьте соединение.';
-          break;
-        case 500:
-          errorMessage = 'Ошибка сервера. Попробуйте позже.';
-          break;
-        default:
-          errorMessage = error.message || 'Произошла ошибка при авторизации';
-      }
+      // Используем сообщение из ApiException, оно уже на русском и понятное
+      errorMessage = error.message || 'Произошла ошибка при авторизации';
     } else if (error instanceof Error) {
-      errorMessage = error.message;
+      errorMessage = error.message || 'Произошла ошибка при авторизации';
     }
 
     // Показываем уведомление пользователю через Telegram WebApp

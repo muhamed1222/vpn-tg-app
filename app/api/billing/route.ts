@@ -5,9 +5,9 @@ import { serverConfig } from '@/lib/config';
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.outlivion.space';
 
 /**
- * API Route для получения VPN конфигурации пользователя
+ * API Route для получения статистики использования
  * 
- * Проксирует запрос на бэкенд API для получения VPN ключа
+ * Проксирует GET запрос на бэкенд API /api/billing
  */
 export async function GET(request: NextRequest) {
   try {
@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Получаем данные пользователя, включая VPN ключ
-    const userResponse = await fetch(`${BACKEND_API_URL}/api/me`, {
+    // Проксируем запрос на бэкенд API
+    const backendResponse = await fetch(`${BACKEND_API_URL}/api/billing`, {
       method: 'GET',
       headers: {
         'Authorization': initData,
@@ -44,27 +44,20 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!userResponse.ok) {
-      return NextResponse.json({
-        ok: false,
-        config: null,
-      });
+    if (!backendResponse.ok) {
+      const errorData = await backendResponse.json().catch(() => ({}));
+      return NextResponse.json(
+        { error: errorData.error || 'Ошибка загрузки статистики' },
+        { status: backendResponse.status }
+      );
     }
 
-    const userData = await userResponse.json();
-    const vlessKey = userData.subscription?.vless_key || null;
-    const isActive = userData.subscription?.is_active && 
-                     userData.subscription?.expires_at && 
-                     userData.subscription.expires_at > Date.now();
-
-    return NextResponse.json({
-      ok: isActive && !!vlessKey,
-      config: vlessKey,
-    });
+    const data = await backendResponse.json();
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Config API error:', error);
+    console.error('Billing API error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: 'Внутренняя ошибка сервера. Попробуйте позже.' },
       { status: 500 }
     );
   }
