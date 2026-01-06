@@ -39,11 +39,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Проксируем запрос на бэкенд API
-    const backendResponse = await fetch(`${BACKEND_API_URL}/api/tariffs`, {
+    // Тарифы могут быть доступны без авторизации, но если initData есть, валидируем
+    const backendResponse = await fetch(`${BACKEND_API_URL}/v1/tariffs`, {
       method: 'GET',
       headers: {
-        'Authorization': initData,
         'Content-Type': 'application/json',
+        // Если initData есть, отправляем его (но роут может работать и без него)
+        ...(initData ? { 'Authorization': initData } : {}),
       },
     });
 

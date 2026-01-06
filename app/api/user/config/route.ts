@@ -37,31 +37,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Получаем данные пользователя, включая VPN ключ
-    const userResponse = await fetch(`${BACKEND_API_URL}/api/me`, {
+    // Получаем VPN конфигурацию напрямую с initData в Authorization header
+    const configResponse = await fetch(`${BACKEND_API_URL}/v1/user/config`, {
       method: 'GET',
       headers: {
-        'Authorization': initData,
+        'Authorization': initData, // initData в Authorization header
         'Content-Type': 'application/json',
       },
     });
 
-    if (!userResponse.ok) {
+    if (!configResponse.ok) {
       return NextResponse.json({
         ok: false,
         config: null,
       });
     }
 
-    const userData = await userResponse.json();
-    const vlessKey = userData.subscription?.vless_key || null;
-    const isActive = userData.subscription?.is_active && 
-                     userData.subscription?.expires_at && 
-                     userData.subscription.expires_at > Date.now();
-
+    const configData = await configResponse.json();
     return NextResponse.json({
-      ok: isActive && !!vlessKey,
-      config: vlessKey,
+      ok: configData.ok || false,
+      config: configData.config || null,
     });
   } catch (error) {
     console.error('Config API error:', error);

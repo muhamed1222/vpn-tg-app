@@ -163,38 +163,29 @@ export const api = {
   
   // Получение VPN конфигурации
   getUserConfig: async () => {
-    const userData = await apiFetch<{
-      id: number;
-      firstName: string;
-      subscription: {
-        is_active: boolean;
-        expires_at: number | null;
-        vless_key?: string;
-      };
-    }>('me', { method: 'GET' });
-    
-    const isActive = userData.subscription.is_active && 
-                     userData.subscription.expires_at && 
-                     userData.subscription.expires_at > Date.now();
+    // Используем прямой роут /user/config вместо /me
+    const configData = await apiFetch<{
+      ok: boolean;
+      config: string | null;
+    }>('user/config', { method: 'GET' });
     
     return {
-      ok: isActive && !!userData.subscription.vless_key,
-      config: userData.subscription.vless_key || '',
+      ok: configData.ok || false,
+      config: configData.config || '',
     };
   },
   
   // Получение статуса пользователя и статистики
   getUserStatus: async () => {
-    // Параллельно получаем данные пользователя и статистику
-    const [userData, billing] = await Promise.all([
+    // Параллельно получаем статус и billing
+    const [statusData, billing] = await Promise.all([
       apiFetch<{
-        id: number;
-        firstName: string;
-        subscription: {
-          is_active: boolean;
-          expires_at: number | null;
-        };
-      }>('me', { method: 'GET' }),
+        ok: boolean;
+        status: string;
+        expiresAt: number | null;
+        usedTraffic: number;
+        dataLimit: number;
+      }>('user/status', { method: 'GET' }),
       apiFetch<{
         usedBytes: number;
         limitBytes: number | null;
@@ -205,7 +196,7 @@ export const api = {
           start: number | null;
           end: number | null;
         };
-      }>('billing', { method: 'GET' }).catch(() => ({
+      }>('user/billing', { method: 'GET' }).catch(() => ({
         usedBytes: 0,
         limitBytes: null,
         averagePerDayBytes: 0,
@@ -215,16 +206,14 @@ export const api = {
       })),
     ]);
     
-    const isActive = userData.subscription.is_active && 
-                     userData.subscription.expires_at && 
-                     userData.subscription.expires_at > Date.now();
+    const isActive = statusData.status === 'active';
     
     return {
       ok: isActive,
       status: isActive ? 'active' as const : 'disabled' as const,
-      expiresAt: userData.subscription.expires_at || null,
-      usedTraffic: billing.usedBytes || 0,
-      dataLimit: billing.limitBytes || 0,
+      expiresAt: statusData.expiresAt || null,
+      usedTraffic: billing.usedBytes || statusData.usedTraffic || 0,
+      dataLimit: billing.limitBytes || statusData.dataLimit || 0,
     };
   },
   

@@ -50,10 +50,11 @@ export async function GET(request: NextRequest) {
     // Если токен не установлен, просто проксируем запрос на бэкенд
 
     // Проксируем запрос на бэкенд API
-    const backendResponse = await fetch(`${BACKEND_API_URL}/api/me`, {
+    // vpn_api теперь поддерживает initData в Authorization header
+    const backendResponse = await fetch(`${BACKEND_API_URL}/v1/auth/me`, {
       method: 'GET',
       headers: {
-        'Authorization': initData,
+        'Authorization': initData, // initData в Authorization header
         'Content-Type': 'application/json',
       },
     });

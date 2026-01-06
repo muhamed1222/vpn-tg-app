@@ -37,55 +37,51 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Получаем данные пользователя для определения статуса
-    const userResponse = await fetch(`${BACKEND_API_URL}/api/me`, {
-      method: 'GET',
-      headers: {
-        'Authorization': initData,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Параллельно получаем статус и billing с initData в Authorization header
+    const [statusResponse, billingResponse] = await Promise.all([
+      fetch(`${BACKEND_API_URL}/v1/user/status`, {
+        method: 'GET',
+        headers: {
+          'Authorization': initData, // initData в Authorization header
+          'Content-Type': 'application/json',
+        },
+      }),
+      fetch(`${BACKEND_API_URL}/v1/user/billing`, {
+        method: 'GET',
+        headers: {
+          'Authorization': initData, // initData в Authorization header
+          'Content-Type': 'application/json',
+        },
+      }).catch(() => null), // Если роут не существует, игнорируем
+    ]);
 
-    if (!userResponse.ok) {
-      return NextResponse.json({
-        ok: false,
-        status: 'disabled' as const,
-        expiresAt: null,
-        usedTraffic: 0,
-        dataLimit: 0,
-      });
-    }
-
-    const userData = await userResponse.json();
-    const isActive = userData.subscription?.is_active && 
-                     userData.subscription?.expires_at && 
-                     userData.subscription.expires_at > Date.now();
-
-    // Получаем статистику использования трафика
-    const billingResponse = await fetch(`${BACKEND_API_URL}/api/billing`, {
-      method: 'GET',
-      headers: {
-        'Authorization': initData,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    let billingData = {
-      usedBytes: 0,
-      limitBytes: null,
+    let statusData = {
+      ok: false,
+      status: 'not_found' as const,
+      expiresAt: null,
+      usedTraffic: 0,
+      dataLimit: 0,
     };
 
-    if (billingResponse.ok) {
-      billingData = await billingResponse.json();
+    if (statusResponse.ok) {
+      const data = await statusResponse.json();
+      statusData = {
+        ok: data.ok || false,
+        status: data.status === 'active' ? 'active' as const : 'disabled' as const,
+        expiresAt: data.expiresAt ? (typeof data.expiresAt === 'number' ? data.expiresAt : new Date(data.expiresAt).getTime()) : null,
+        usedTraffic: data.usedTraffic || 0,
+        dataLimit: data.dataLimit || 0,
+      };
     }
 
-    return NextResponse.json({
-      ok: isActive,
-      status: isActive ? 'active' as const : 'disabled' as const,
-      expiresAt: userData.subscription?.expires_at || null,
-      usedTraffic: billingData.usedBytes || 0,
-      dataLimit: billingData.limitBytes || 0,
-    });
+    // Если есть billing данные, используем их
+    if (billingResponse && billingResponse.ok) {
+      const billingData = await billingResponse.json();
+      statusData.usedTraffic = billingData.usedBytes || statusData.usedTraffic;
+      statusData.dataLimit = billingData.limitBytes || statusData.dataLimit;
+    }
+
+    return NextResponse.json(statusData);
   } catch (error) {
     console.error('Status API error:', error);
     return NextResponse.json(

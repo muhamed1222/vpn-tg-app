@@ -37,11 +37,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Проксируем запрос на бэкенд API
-    const backendResponse = await fetch(`${BACKEND_API_URL}/api/payments/history`, {
+    // Проксируем запрос на бэкенд API с initData в Authorization header
+    const backendResponse = await fetch(`${BACKEND_API_URL}/v1/payments/history`, {
       method: 'GET',
       headers: {
-        'Authorization': initData,
+        'Authorization': initData, // initData в Authorization header
         'Content-Type': 'application/json',
       },
     });
