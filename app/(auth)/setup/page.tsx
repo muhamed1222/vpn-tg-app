@@ -79,15 +79,25 @@ export default function SetupPage() {
     Шаг 3: Добавление подписки через Deep Link.
     Используется протокол happ://, который поддерживается приложением Hiddify
     для автоматического импорта конфигурации.
+    Для iOS используется протокол v2raytun://import/.
   */
   const handleAddSubscription = () => {
     // Используем реальную ссылку на подписку пользователя
     const userSubscriptionUrl = subscriptionUrl || `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
 
+    // Платформо-зависимый протокол и имя (для iOS используем v2raytun)
+    let protocol = DEEP_LINK_PROTOCOL;
+    let vpnName = 'OutlivionVPN';
+
+    if (platform === 'iOS') {
+      protocol = 'v2raytun://import/';
+      vpnName = 'UltimaVPN';
+    }
+
     // Формируем deep link согласно примеру: https://redirect.../?url=happ://add/https://...#Name
     // Если redirectUrl не задан, используем https://redirect.outlivion.space как дефолт
     const redirectBase = config.payment.redirectUrl || 'https://redirect.outlivion.space';
-    const subUrl = `${redirectBase}/?url=${DEEP_LINK_PROTOCOL}${userSubscriptionUrl}#OutlivionVPN`;
+    const subUrl = `${redirectBase}/?url=${protocol}${userSubscriptionUrl}#${vpnName}`;
 
     const webApp = getTelegramWebApp();
     if (webApp) {
