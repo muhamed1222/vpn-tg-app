@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Copy, FolderOpen, Check } from 'lucide-react';
 import { getTelegramWebApp } from '@/lib/telegram';
 import { BottomSheet } from '../ui/BottomSheet';
+import { useUserStore } from '@/store/user.store';
 
 interface ReferralModalProps {
   isOpen: boolean;
@@ -12,6 +13,11 @@ interface ReferralModalProps {
 
 export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose }) => {
   const [isCopied, setIsCopied] = useState(false);
+  const { user } = useUserStore();
+
+  // Формируем реальную реферальную ссылку
+  const botUsername = 'outlivion_bot'; // Юзернейм нашего бота
+  const referralLink = `https://t.me/${botUsername}/app?startapp=ref_${user?.id || ''}`;
 
   /* 
     Обработчик копирования реферальной ссылки.
@@ -19,15 +25,20 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
     и показывается системное уведомление Telegram.
   */
   const handleCopyLink = () => {
-    const link = 'https://t.me/ultimavpnbot/app?s...'; // Замените на реальную ссылку
-    navigator.clipboard.writeText(link);
+    navigator.clipboard.writeText(referralLink);
     
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
 
     const webApp = getTelegramWebApp();
     if (webApp) {
-      webApp.showAlert('Реферальная ссылка скопирована!');
+      try {
+        if (typeof webApp.showAlert === 'function') {
+          webApp.showAlert('Реферальная ссылка скопирована!');
+        }
+      } catch (e) {
+        console.error('Failed to show alert:', e);
+      }
     }
   };
 
@@ -43,7 +54,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
             За каждого приглашенного друга вы получите <span className="text-[#F55128] font-medium">15% бонусных дней</span> от всех его пополнений.
           </p>
           <p className="text-white/60 text-sm leading-relaxed mb-6">
-            Например, если ваш друг продлит подписку на 1 год, вы получите 55 дней.
+            Например, если ваш друг продлит подписку на 1 месяц, вы получите бонусные дни к своей подписке.
           </p>
           <div className="h-px bg-white/5 mb-4" />
           <div className="flex justify-between items-center text-lg font-medium">
@@ -62,7 +73,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
             onClick={handleCopyLink}
             className="bg-black/20 rounded-[10px] p-4 flex items-center justify-between border border-white/5 active:bg-black/40 transition-colors cursor-pointer group"
           >
-            <code className="text-[#F55128] text-base truncate pr-4">https://t.me/ultimavpnbot/app?s...</code>
+            <code className="text-[#F55128] text-base truncate pr-4">{referralLink}</code>
             {isCopied ? (
               <Check size={20} className="text-[#F55128] flex-shrink-0" />
             ) : (
