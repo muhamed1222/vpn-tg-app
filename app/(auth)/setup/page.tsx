@@ -1,18 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
 import { getTelegramWebApp, getTelegramPlatform, triggerHaptic } from '@/lib/telegram';
 import { InfoModal } from '@/components/blocks/InfoModal';
 import { config } from '@/lib/config';
-import { SUBSCRIPTION_CONFIG, APP_STORE_URLS, DEEP_LINK_PROTOCOL } from '@/lib/constants';
+import { SUBSCRIPTION_CONFIG, APP_STORE_URLS } from '@/lib/constants';
 import { api } from '@/lib/api';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 
-import { Step1Welcome } from './steps/Step1Welcome';
-import { Step2Install } from './steps/Step2Install';
-import { Step3Subscription } from './steps/Step3Subscription';
-import { Step4Complete } from './steps/Step4Complete';
+// Dynamic imports for code splitting - only load steps when needed
+const Step1Welcome = dynamic(() => import('./steps/Step1Welcome').then(m => ({ default: m.Step1Welcome })), { ssr: false });
+const Step2Install = dynamic(() => import('./steps/Step2Install').then(m => ({ default: m.Step2Install })), { ssr: false });
+const Step3Subscription = dynamic(() => import('./steps/Step3Subscription').then(m => ({ default: m.Step3Subscription })), { ssr: false });
+const Step4Complete = dynamic(() => import('./steps/Step4Complete').then(m => ({ default: m.Step4Complete })), { ssr: false });
 
 /**
  * SetupPage - Экран пошаговой настройки VPN (Onboarding).
@@ -26,14 +28,13 @@ export default function SetupPage() {
   const [step, setStep] = useState(1);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [subscriptionUrl, setSubscriptionUrl] = useState<string | null>(null);
+  const [platform, setPlatform] = useState<string>('Devices');
 
-  // Инициализируем платформу сразу, без useEffect
-  const [platform] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return getTelegramPlatform();
-    }
-    return '...';
-  });
+  // Detect platform after mount to avoid hydration mismatch
+  // Note: This setState in useEffect is intentional to avoid SSR/CSR mismatch
+  useEffect(() => {
+    setPlatform(getTelegramPlatform());
+  }, []);
 
   // Загружаем реальную ссылку на подписку пользователя
   useEffect(() => {
@@ -85,19 +86,12 @@ export default function SetupPage() {
     // Используем реальную ссылку на подписку пользователя
     const userSubscriptionUrl = subscriptionUrl || `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
 
-    // Платформо-зависимый протокол и имя (для iOS используем v2raytun)
-    let protocol: string = DEEP_LINK_PROTOCOL;
-    let vpnName = 'OutlivionVPN';
+    // Платформо-зависимый протокол (для iOS используем v2raytun)
+    const protocol = platform === 'iOS' ? config.deepLink.iosProtocol : config.deepLink.defaultProtocol;
+    const vpnName = config.deepLink.vpnName;
 
-    if (platform === 'iOS') {
-      protocol = 'v2raytun://import/';
-      vpnName = 'UltimaVPN';
-    }
-
-    // Формируем deep link согласно примеру: https://redirect.../?url=happ://add/https://...#Name
-    // Если redirectUrl не задан, используем https://redirect.outlivion.space как дефолт
-    const redirectBase = config.payment.redirectUrl || 'https://redirect.outlivion.space';
-    const subUrl = `${redirectBase}/?url=${protocol}${userSubscriptionUrl}#${vpnName}`;
+    // Формируем прямую ссылку (deep link) без редиректа
+    const subUrl = `${protocol}${userSubscriptionUrl}#${vpnName}`;
 
     const webApp = getTelegramWebApp();
     if (webApp) {

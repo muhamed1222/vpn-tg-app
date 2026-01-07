@@ -6,15 +6,16 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/AuthProvider";
 
 const gtWalsheimPro = localFont({
-  src: "../fonts/GTWalsheimPro-Regular.woff",
+  src: "../public/fonts/GTWalsheimPro-Regular.woff",
   variable: "--font-gt-walsheim-pro",
   display: "swap",
   weight: "400",
   fallback: ['system-ui', 'sans-serif'],
 });
 
+// Using the same font for mono (no separate mono font available)
 const geistMono = localFont({
-  src: "../fonts/GTWalsheimPro-Regular.woff",
+  src: "../public/fonts/GTWalsheimPro-Regular.woff",
   variable: "--font-geist-mono",
   display: "swap",
 });

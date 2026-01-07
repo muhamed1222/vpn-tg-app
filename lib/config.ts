@@ -57,5 +57,13 @@ export const config = {
     telegramUrl: getClientEnvVar('NEXT_PUBLIC_SUPPORT_TELEGRAM_URL', 'https://t.me/outlivion_support'),
     helpBaseUrl: getClientEnvVar('NEXT_PUBLIC_HELP_BASE_URL', 'https://help.outlivion.space'),
   },
+  bot: {
+    username: getClientEnvVar('NEXT_PUBLIC_BOT_USERNAME', 'outlivion_bot'),
+  },
+  deepLink: {
+    defaultProtocol: 'happ://add/',
+    iosProtocol: 'v2raytun://import/',
+    vpnName: 'OutlivionVPN',
+  },
 } as const;
 

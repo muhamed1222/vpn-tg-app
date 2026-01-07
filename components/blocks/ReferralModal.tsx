@@ -6,6 +6,7 @@ import { getTelegramWebApp } from '@/lib/telegram';
 import { BottomSheet } from '../ui/BottomSheet';
 import { useUserStore } from '@/store/user.store';
 import { api } from '@/lib/api';
+import { config } from '@/lib/config';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface ReferralModalProps {
@@ -44,9 +45,8 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
   }, [isOpen]);
 
   // Формируем реальную реферальную ссылку
-  const botUsername = 'outlivion_bot';
   const referralCode = stats?.referralCode || (user?.id ? `REF${user.id}` : '');
-  const referralLink = `https://t.me/${botUsername}?start=${referralCode}`;
+  const referralLink = `https://t.me/${config.bot.username}?start=${referralCode}`;
 
   /* 
     Обработчик копирования реферальной ссылки.

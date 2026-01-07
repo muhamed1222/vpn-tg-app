@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
 
     // Проксируем запрос на бэкенд API
     // Тарифы могут быть доступны без авторизации, но если initData есть, валидируем
+    // Используем кеширование Next.js для статических данных (тарифы меняются редко)
     const backendResponse = await fetch(`${BACKEND_API_URL}/v1/tariffs`, {
       method: 'GET',
       headers: {
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
         // Если initData есть, отправляем его (но роут может работать и без него)
         ...(initData ? { 'Authorization': initData } : {}),
       },
+      next: { revalidate: 3600 }, // Кешируем на 1 час (3600 секунд)
     });
 
     if (!backendResponse.ok) {
