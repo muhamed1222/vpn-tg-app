@@ -83,4 +83,3 @@ export const triggerHaptic = (type: 'light' | 'medium' | 'heavy' | 'rigid' | 'so
     // Игнорируем ошибки тактильного отклика
   }
 };
-
