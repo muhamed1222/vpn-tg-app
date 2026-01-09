@@ -51,17 +51,18 @@ export default function Home() {
   const [minPrice, setMinPrice] = useState<number>(99);
   const [isPriceLoading, setIsPriceLoading] = useState(true);
 
-  // Инициализируем платформу с fallback
-  const [platform] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const { isAvailable } = checkTelegramWebApp();
-      if (isAvailable) {
-        return getTelegramPlatform();
-      }
-      return getPlatformSafe();
+  // Инициализируем платформу - используем useEffect чтобы избежать hydration mismatch
+  const [platform, setPlatform] = useState<string>('...');
+
+  useEffect(() => {
+    // Определяем платформу только на клиенте после mount
+    const { isAvailable } = checkTelegramWebApp();
+    if (isAvailable) {
+      setPlatform(getTelegramPlatform());
+    } else {
+      setPlatform(getPlatformSafe());
     }
-    return '...';
-  });
+  }, []);
 
   const { subscription, loading: subscriptionLoading } = useSubscriptionStore();
 
@@ -193,16 +194,14 @@ export default function Home() {
                 <h2 className="text-lg font-semibold text-white">Розыгрыш</h2>
               </div>
             </div>
-            <button
-              onClick={() => {
-                triggerHaptic('light');
-                // TODO: Добавить обработчик для перехода к деталям розыгрыша
-              }}
+            <Link
+              href="/contest"
+              onClick={() => triggerHaptic('light')}
               className="px-4 py-2 bg-white/20 hover:bg-white/30 active:scale-95 transition-all rounded-[10px] text-white text-sm font-medium border border-white/30"
               aria-label="Подробнее о розыгрыше"
             >
               Подробнее
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -385,6 +384,7 @@ export default function Home() {
             onClick={() => triggerHaptic('light')}
             className="w-full h-fit bg-transparent border border-white/10 hover:bg-white/5 active:scale-[0.98] transition-all rounded-[10px] flex items-center px-[14px] py-[14px] justify-between text-white group mb-[10px]"
             aria-label={`Установка и настройка VPN для ${platform}`}
+            suppressHydrationWarning
           >
             <div className="flex items-center gap-[10px]">
               <div className="p-0 rounded-xl" aria-hidden="true">
@@ -392,7 +392,11 @@ export default function Home() {
               </div>
               <span className="text-base font-medium">Установка и настройка</span>
             </div>
-            <span className="text-[#F55128] text-base font-medium opacity-80 group-hover:opacity-100 transition-opacity" aria-label={`Платформа: ${platform}`}>
+            <span 
+              className="text-[#F55128] text-base font-medium opacity-80 group-hover:opacity-100 transition-opacity" 
+              aria-label={`Платформа: ${platform}`}
+              suppressHydrationWarning
+            >
               {platform}
             </span>
           </Link>

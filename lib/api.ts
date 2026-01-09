@@ -353,5 +353,70 @@ export const api = {
     referralId: string;
     status: 'pending' | 'completed' | 'cancelled';
   }>>('user/referrals/history', { method: 'GET' }),
+
+  // Конкурсы
+  getActiveContest: async () => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      'active_contest',
+      () => apiFetch<{
+        ok: boolean;
+        contest: {
+          id: string;
+          title: string;
+          starts_at: string;
+          ends_at: string;
+          attribution_window_days: number;
+          rules_version: string;
+          is_active: boolean;
+        } | null;
+      }>('contest/active', { method: 'GET' }),
+      60 * 1000 // 1 минута
+    );
+  },
+
+  getContestSummary: (contestId: string) => apiFetch<{
+    ok: boolean;
+    summary: {
+      contest: {
+        id: string;
+        title: string;
+        starts_at: string;
+        ends_at: string;
+        attribution_window_days: number;
+        rules_version: string;
+        is_active: boolean;
+      };
+      ref_link: string;
+      tickets_total: number;
+      invited_total: number;
+      qualified_total: number;
+      pending_total: number;
+    };
+  }>(`referral/summary?contest_id=${contestId}`, { method: 'GET' }),
+
+  getContestFriends: (contestId: string, limit: number = 50) => apiFetch<{
+    ok: boolean;
+    friends: Array<{
+      id: string;
+      name: string | null;
+      tg_username: string | null;
+      status: 'bound' | 'qualified' | 'blocked' | 'not_qualified';
+      status_reason: string | null;
+      tickets_from_friend_total: number;
+      bound_at: string;
+    }>;
+  }>(`referral/friends?contest_id=${contestId}&limit=${limit}`, { method: 'GET' }),
+
+  getContestTickets: (contestId: string) => apiFetch<{
+    ok: boolean;
+    tickets: Array<{
+      id: string;
+      created_at: string;
+      delta: number;
+      label: string;
+      invitee_name: string | null;
+    }>;
+  }>(`referral/tickets?contest_id=${contestId}`, { method: 'GET' }),
 };
 
