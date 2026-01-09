@@ -22,6 +22,11 @@ export type StepVariants = Variants;
 export type PlatformType = 'iOS' | 'Android' | 'macOS' | 'Desktop' | 'Web' | string;
 
 /**
+ * Статус подписки
+ */
+export type SubscriptionStatus = 'active' | 'inactive' | 'checking';
+
+/**
  * Базовые props для всех шагов
  */
 export interface BaseStepProps {
@@ -36,7 +41,7 @@ export interface Step1WelcomeProps extends BaseStepProps {
   platform: PlatformType;
   onNext: () => void;
   onOtherDevice: () => void;
-  subscriptionStatus?: 'active' | 'inactive' | 'checking';
+  subscriptionStatus?: SubscriptionStatus;
 }
 
 /**

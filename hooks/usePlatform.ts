@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { getTelegramPlatform } from '@/lib/telegram';
-import { getPlatformSafe } from '@/lib/telegram-fallback';
+import { getPlatformSafe, checkTelegramWebApp } from '@/lib/telegram-fallback';
 
 /**
  * Хук для определения платформы пользователя
+ * Использует Telegram WebApp API для определения платформы, если доступно
  */
-export function usePlatform() {
+export function usePlatform(): string {
   const [platform, setPlatform] = useState<string>('Devices');
 
   useEffect(() => {
     // Определяем платформу после монтирования для избежания hydration mismatch
     if (typeof window !== 'undefined') {
-      const { checkTelegramWebApp } = require('@/lib/telegram-fallback');
       const { isAvailable } = checkTelegramWebApp();
       
       if (isAvailable) {
