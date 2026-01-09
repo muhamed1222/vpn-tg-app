@@ -149,7 +149,6 @@ export default function ContestPage() {
     }
   }, [summary]);
 
-
   if (loading) {
     return (
       <main className="w-full bg-black text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
