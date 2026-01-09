@@ -239,7 +239,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
                 {methodInfo.icon}
                 <span className="text-base font-medium">{methodInfo.name}</span>
               </div>
-              <ChevronRight className="w-5 h-5" className="text-white/40" />
+              <ChevronRight className="w-5 h-5 text-white/40" />
             </button>
           </div>
 

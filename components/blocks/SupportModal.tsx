@@ -106,9 +106,9 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
                     {item.question}
                   </span>
                   {isItemOpen ? (
-                    <ChevronUp className="w-6 h-6" className="text-white/20 flex-shrink-0 mt-1" />
+                    <ChevronUp className="w-6 h-6 text-white/20 flex-shrink-0 mt-1" />
                   ) : (
-                    <ChevronDown className="w-6 h-6" className="text-white/20 flex-shrink-0 mt-1" />
+                    <ChevronDown className="w-6 h-6 text-white/20 flex-shrink-0 mt-1" />
                   )}
                 </button>
                 

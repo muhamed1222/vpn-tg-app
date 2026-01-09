@@ -161,9 +161,9 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
           >
             <code className="text-[#F55128] text-base truncate pr-4">{referralLink}</code>
             {isCopied ? (
-              <Check className="w-5 h-5" className="text-[#F55128] flex-shrink-0" />
+              <Check className="w-5 h-5 text-[#F55128] flex-shrink-0" />
             ) : (
-              <Copy className="w-5 h-5" className="text-white/40 group-hover:text-white transition-colors flex-shrink-0" />
+              <Copy className="w-5 h-5 text-white/40 group-hover:text-white transition-colors flex-shrink-0" />
             )}
           </div>
         </div>
@@ -181,7 +181,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
           ) : history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-white/5 rounded-[16px] border border-dashed border-white/10">
               <div className="bg-white/5 p-4 rounded-xl mb-4 border border-white/5">
-                <FolderOpen size={32} className="text-white/20" />
+                <FolderOpen className="w-8 h-8 text-white/20" />
               </div>
               <p className="text-white/40 text-sm max-w-[240px]">
                 История начислений появится здесь после того, как ваши друзья начнут пополнять подписку
@@ -216,7 +216,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="bg-[#F55128]/10 p-2 rounded-lg border border-[#F55128]/20 flex-shrink-0">
-                        <Coins className="w-[18px] h-[18px]" className="text-[#F55128]" />
+                         <Coins className="w-[18px] h-[18px] text-[#F55128]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -228,7 +228,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-white/60 text-xs">
-                          <Calendar size={12} />
+                          <Calendar className="w-3 h-3" />
                           <span>{formattedDate}</span>
                         </div>
                       </div>

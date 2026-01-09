@@ -107,7 +107,7 @@ export const VpnConnectionCard: React.FC = () => {
       <div className="bg-[#121212] rounded-[16px] p-5 border border-white/5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20">
-            <AlertCircle className="w-5 h-5" className="text-red-500" />
+            <AlertCircle className="w-5 h-5 text-red-500" />
           </div>
           <div className="flex-1">
             <h3 className="text-base font-medium text-white mb-1">Ошибка загрузки</h3>
@@ -132,7 +132,7 @@ export const VpnConnectionCard: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-[#F55128]/10 rounded-xl flex items-center justify-center border border-[#F55128]/20">
-            <Key className="w-5 h-5" className="text-[#F55128]" />
+            <Key className="w-5 h-5 text-[#F55128]" />
           </div>
           <div>
             <h3 className="text-base font-medium text-white">VPN ключ</h3>
@@ -145,7 +145,7 @@ export const VpnConnectionCard: React.FC = () => {
           aria-label={showQR ? 'Скрыть QR код' : 'Показать QR код'}
           type="button"
         >
-          <QrCode className="w-5 h-5" className={`text-white/60 transition-colors ${showQR ? 'text-[#F55128]' : ''}`} />
+          <QrCode className={`w-5 h-5 text-white/60 transition-colors ${showQR ? 'text-[#F55128]' : ''}`} />
         </button>
       </div>
 

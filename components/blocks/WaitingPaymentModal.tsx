@@ -33,7 +33,7 @@ export const WaitingPaymentModal: React.FC<WaitingPaymentModalProps> = ({
               style={{ '--index': 1 } as React.CSSProperties}
             >
               <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center border border-green-500/30">
-                <CheckCircle2 size={48} className="text-green-500" />
+                <CheckCircle2 className="w-12 h-12 text-green-500" />
               </div>
             </div>
 
@@ -66,7 +66,7 @@ export const WaitingPaymentModal: React.FC<WaitingPaymentModalProps> = ({
               style={{ '--index': 1 } as React.CSSProperties}
             >
               <p className="text-white/80 text-lg font-medium">Оплатите счет в сервисе ЮKасса</p>
-              <ExternalLink className="w-[18px] h-[18px]" className="text-white/40" />
+              <ExternalLink className="w-[18px] h-[18px] text-white/40" />
             </div>
 
             {/* Анимация загрузки */}

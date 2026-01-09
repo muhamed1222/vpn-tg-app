@@ -89,9 +89,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
         >
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? 'bg-green-500/10 border border-green-500/20' : 'bg-yellow-500/10 border border-yellow-500/20'}`}>
             {isActive ? (
-              <ShieldCheck className="w-6 h-6" className="text-green-500" />
+              <ShieldCheck className="w-6 h-6 text-green-500" />
             ) : (
-              <ShieldAlert className="w-6 h-6" className="text-yellow-500" />
+              <ShieldAlert className="w-6 h-6 text-yellow-500" />
             )}
           </div>
           <div>
@@ -110,7 +110,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
           style={{ '--index': 2 } as React.CSSProperties}
         >
           <div className="bg-white/5 p-4 rounded-xl mb-4 border border-white/5">
-            <CreditCard size={32} className="text-white/60" />
+            <CreditCard className="w-8 h-8 text-white/60" />
           </div>
           <p className="text-white/80 text-lg font-medium leading-relaxed max-w-[280px]">
             Способы оплаты сохраняются автоматически при первой покупке
