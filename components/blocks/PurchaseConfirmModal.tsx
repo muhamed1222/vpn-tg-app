@@ -123,8 +123,8 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
         }
       } catch (error) {
         // Если не удалось проверить, продолжаем (бэкенд тоже проверит)
-        const { logWarn } = await import('@/lib/utils/logging');
-        logWarn('Failed to check payment history', error, {
+        const { logError } = await import('@/lib/utils/logging');
+        logError('Failed to check payment history', error, {
           page: 'PurchaseConfirmModal',
           action: 'checkPaymentHistory'
         });
