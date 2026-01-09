@@ -19,10 +19,10 @@ interface ContestSummaryCardProps {
  * Компонент для отображения сводки по конкурсу
  * Показывает количество билетов и статистику
  */
-export const ContestSummaryCard: React.FC<ContestSummaryCardProps> = ({ 
+export default function ContestSummaryCard({ 
   summary, 
   progress
-}) => {
+}: ContestSummaryCardProps) {
   const endDate = formatDateFull(summary.contest.ends_at);
 
   return (

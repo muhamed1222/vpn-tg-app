@@ -12,13 +12,9 @@ interface ContestRulesModalProps {
 }
 
 /**
- * Модальное окно с правилами конкурса
+ * Компонент модального окна с правилами конкурса
  */
-export const ContestRulesModal: React.FC<ContestRulesModalProps> = ({
-  isOpen,
-  onClose,
-  contest,
-}) => {
+export default function ContestRulesModal({ isOpen, onClose, contest }: { isOpen: boolean; onClose: () => void; contest: Contest }) {
   const startDate = formatDateFull(contest.starts_at);
   const endDate = formatDateFull(contest.ends_at);
 

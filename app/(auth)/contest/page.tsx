@@ -10,22 +10,21 @@ import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { 
   mockContestSummary, 
   mockFriends, 
-  mockTicketsHistory,
-  mockContest 
+  mockTicketsHistory
 } from '@/lib/mocks/contest-mocks';
 
 // Lazy loading для компонентов
 const ContestSummaryCard = lazy(() =>
-  import('@/components/blocks/ContestSummaryCard').then(m => ({ default: m.ContestSummaryCard }))
+  import('@/components/blocks/ContestSummaryCard')
 );
 const FriendsList = lazy(() =>
-  import('@/components/blocks/FriendsList').then(m => ({ default: m.FriendsList }))
+  import('@/components/blocks/FriendsList')
 );
 const TicketsHistory = lazy(() =>
-  import('@/components/blocks/TicketsHistory').then(m => ({ default: m.TicketsHistory }))
+  import('@/components/blocks/TicketsHistory')
 );
 const ContestRulesModal = lazy(() =>
-  import('@/components/blocks/ContestRulesModal').then(m => ({ default: m.ContestRulesModal }))
+  import('@/components/blocks/ContestRulesModal')
 );
 
 export default function ContestPage() {

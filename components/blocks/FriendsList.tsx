@@ -16,7 +16,7 @@ interface FriendsListProps {
 /**
  * Компонент для отображения списка друзей в конкурсе
  */
-export const FriendsList: React.FC<FriendsListProps> = ({ friends }) => {
+export default function FriendsList({ friends }: FriendsListProps) {
   // Группируем друзей только если их больше 5
   const shouldGroup = friends.length > 5;
   

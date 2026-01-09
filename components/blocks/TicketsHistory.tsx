@@ -13,10 +13,10 @@ interface TicketsHistoryProps {
 /**
  * Компонент для отображения истории билетов
  */
-export const TicketsHistory: React.FC<TicketsHistoryProps> = ({ tickets, onShowAll }) => {
+export default function TicketsHistory({ tickets, onShowAll }: TicketsHistoryProps) {
   // Сортируем билеты по дате (новые сверху) и мемоизируем, ограничиваем до 5 записей
   const sortedTickets = useMemo(() => {
-    return [...tickets]
+    return [...(tickets ?? [])]
       .sort((a, b) => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       })
