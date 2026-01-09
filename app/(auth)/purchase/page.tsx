@@ -74,20 +74,29 @@ export default function PurchasePage() {
     try {
       // Проверяем историю платежей
       const payments = await api.getPaymentsHistory();
+      console.log('[PurchasePage] Payments history:', payments);
       const hasPaidPayments = payments.some(p => p.status === 'success' || p.status === 'paid');
+      console.log('[PurchasePage] hasPaidPayments:', hasPaidPayments);
       
       // Также проверяем статус подписки
       const statusData = await api.getUserStatus();
+      console.log('[PurchasePage] User status:', statusData);
       const hasActiveSubscription = statusData.ok && statusData.status === 'active';
+      console.log('[PurchasePage] hasActiveSubscription:', hasActiveSubscription);
       
       // Если есть активная подписка или оплаченные платежи - скрываем plan_7
-      return hasPaidPayments || hasActiveSubscription;
+      const result = hasPaidPayments || hasActiveSubscription;
+      console.log('[PurchasePage] checkHasPaidOrders result:', result);
+      return result;
     } catch (error) {
+      console.error('[PurchasePage] Error checking paid orders:', error);
       // Если не удалось загрузить данные, проверяем локальное состояние подписки
       if (subscription && subscription.status === 'active') {
+        console.log('[PurchasePage] Using local subscription status: active');
         return true;
       }
       // Если не удалось проверить, возвращаем false (показываем все тарифы)
+      console.log('[PurchasePage] No paid orders found, showing all tariffs');
       return false;
     }
   };
@@ -124,6 +133,10 @@ export default function PurchasePage() {
         
         // Проверяем, есть ли у пользователя оплаченные платежи
         const hasPaidOrders = await checkHasPaidOrders();
+        
+        // Логируем для отладки
+        console.log('[PurchasePage] hasPaidOrders:', hasPaidOrders);
+        console.log('[PurchasePage] tariffs from API:', tariffs.map(t => ({ id: t.id, days: t.days })));
 
         // Преобразуем тарифы с бэкенда в формат приложения с валидацией
         const transformedPlans: Plan[] = tariffs
@@ -134,8 +147,12 @@ export default function PurchasePage() {
             }
             
             // Скрываем plan_7, если у пользователя есть оплаченные платежи
-            if (tariff.id === 'plan_7' && hasPaidOrders) {
-              return false;
+            if (tariff.id === 'plan_7') {
+              if (hasPaidOrders) {
+                console.log('[PurchasePage] Filtering out plan_7 because user has paid orders');
+                return false;
+              }
+              console.log('[PurchasePage] Showing plan_7 because user has no paid orders');
             }
             
             return true;
