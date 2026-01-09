@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { 
   CreditCard, 
   List, 
@@ -14,15 +14,24 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUserStore } from '@/store/user.store';
-import { TransactionsModal } from '@/components/blocks/TransactionsModal';
-import { ReferralModal } from '@/components/blocks/ReferralModal';
-import { TermsModal } from '@/components/blocks/TermsModal';
-import { PaymentModal } from '@/components/blocks/PaymentModal';
 import { VpnConnectionCard } from '@/components/blocks/VpnConnectionCard';
 import { getTelegramWebApp } from '@/lib/telegram';
 import { config } from '@/lib/config';
-import { useTelegramWebApp } from '@/hooks/useTelegramWebApp';
 import { logError } from '@/lib/utils/logging';
+
+// Lazy loading для модалок - загружаются только когда открыты
+const TransactionsModal = lazy(() => 
+  import('@/components/blocks/TransactionsModal').then(m => ({ default: m.TransactionsModal }))
+);
+const ReferralModal = lazy(() => 
+  import('@/components/blocks/ReferralModal').then(m => ({ default: m.ReferralModal }))
+);
+const TermsModal = lazy(() => 
+  import('@/components/blocks/TermsModal').then(m => ({ default: m.TermsModal }))
+);
+const PaymentModal = lazy(() => 
+  import('@/components/blocks/PaymentModal').then(m => ({ default: m.PaymentModal }))
+);
 
 export default function ProfilePage() {
   const { user } = useUserStore();
@@ -217,25 +226,42 @@ export default function ProfilePage() {
       {/* Bottom Spacer - 100px + safe area to ensure scroll room */}
       <div className="min-h-[calc(100px+env(safe-area-inset-bottom))] w-full" aria-hidden="true" />
 
-      <TransactionsModal 
-        isOpen={isTransactionsOpen} 
-        onClose={() => setIsTransactionsOpen(false)} 
-      />
+      {/* Lazy loaded modals with Suspense */}
+      {isTransactionsOpen && (
+        <Suspense fallback={null}>
+          <TransactionsModal 
+            isOpen={isTransactionsOpen} 
+            onClose={() => setIsTransactionsOpen(false)} 
+          />
+        </Suspense>
+      )}
 
-      <ReferralModal 
-        isOpen={isReferralOpen} 
-        onClose={() => setIsReferralOpen(false)} 
-      />
+      {isReferralOpen && (
+        <Suspense fallback={null}>
+          <ReferralModal 
+            isOpen={isReferralOpen} 
+            onClose={() => setIsReferralOpen(false)} 
+          />
+        </Suspense>
+      )}
 
-      <TermsModal 
-        isOpen={isTermsOpen} 
-        onClose={() => setIsTermsOpen(false)} 
-      />
+      {isTermsOpen && (
+        <Suspense fallback={null}>
+          <TermsModal 
+            isOpen={isTermsOpen} 
+            onClose={() => setIsTermsOpen(false)} 
+          />
+        </Suspense>
+      )}
 
-      <PaymentModal
-        isOpen={isPaymentOpen}
-        onClose={() => setIsPaymentOpen(false)}
-      />
+      {isPaymentOpen && (
+        <Suspense fallback={null}>
+          <PaymentModal
+            isOpen={isPaymentOpen}
+            onClose={() => setIsPaymentOpen(false)}
+          />
+        </Suspense>
+      )}
     </main>
   );
 }

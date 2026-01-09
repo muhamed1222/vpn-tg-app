@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
-import { PurchaseConfirmModal } from '@/components/blocks/PurchaseConfirmModal';
 import { SUBSCRIPTION_CONFIG } from '@/lib/constants';
 import { api } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useSubscriptionStore } from '@/store/subscription.store';
 import { logError } from '@/lib/utils/logging';
-import { getCache, setCache } from '@/lib/utils/cache';
+
+// Lazy loading для модалки подтверждения покупки
+const PurchaseConfirmModal = lazy(() => 
+  import('@/components/blocks/PurchaseConfirmModal').then(m => ({ default: m.PurchaseConfirmModal }))
+);
 
 interface Plan {
   id: string;
@@ -20,14 +23,6 @@ interface Plan {
   isPopular?: boolean;
   oldPrice?: number;
 }
-
-// Маппинг ID тарифов с бэкенда на локализованные названия
-const PLAN_DURATION_MAP: Record<string, string> = {
-  '1m': '1 месяц',
-  '3m': '3 месяца',
-  '6m': '6 месяцев',
-  '1y': '1 год',
-};
 
 // Конвертация дней в локализованное название
 const getDurationFromDays = (days: number): string => {
@@ -70,36 +65,32 @@ export default function PurchasePage() {
   const { subscription } = useSubscriptionStore();
 
   // Проверяем, есть ли у пользователя оплаченные платежи или активная подписка
-  const checkHasPaidOrders = async (): Promise<boolean> => {
+  const checkHasPaidOrders = useCallback(async (): Promise<boolean> => {
     try {
       // Проверяем историю платежей
       const payments = await api.getPaymentsHistory();
-      console.log('[PurchasePage] Payments history:', payments);
       const hasPaidPayments = payments.some(p => p.status === 'success');
-      console.log('[PurchasePage] hasPaidPayments:', hasPaidPayments);
       
       // Также проверяем статус подписки
       const statusData = await api.getUserStatus();
-      console.log('[PurchasePage] User status:', statusData);
       const hasActiveSubscription = statusData.ok && statusData.status === 'active';
-      console.log('[PurchasePage] hasActiveSubscription:', hasActiveSubscription);
       
       // Если есть активная подписка или оплаченные платежи - скрываем plan_7
       const result = hasPaidPayments || hasActiveSubscription;
-      console.log('[PurchasePage] checkHasPaidOrders result:', result);
       return result;
     } catch (error) {
-      console.error('[PurchasePage] Error checking paid orders:', error);
+      logError('Error checking paid orders', error, {
+        page: 'purchase',
+        action: 'checkHasPaidOrders'
+      });
       // Если не удалось загрузить данные, проверяем локальное состояние подписки
       if (subscription && subscription.status === 'active') {
-        console.log('[PurchasePage] Using local subscription status: active');
         return true;
       }
       // Если не удалось проверить, возвращаем false (показываем все тарифы)
-      console.log('[PurchasePage] No paid orders found, showing all tariffs');
       return false;
     }
-  };
+  }, [subscription]);
 
   // Загружаем тарифы с бэкенда
   useEffect(() => {
@@ -133,10 +124,6 @@ export default function PurchasePage() {
         
         // Проверяем, есть ли у пользователя оплаченные платежи
         const hasPaidOrders = await checkHasPaidOrders();
-        
-        // Логируем для отладки
-        console.log('[PurchasePage] hasPaidOrders:', hasPaidOrders);
-        console.log('[PurchasePage] tariffs from API:', tariffs.map(t => ({ id: t.id, days: t.days })));
 
         // Преобразуем тарифы с бэкенда в формат приложения с валидацией
         const transformedPlans: Plan[] = tariffs
@@ -147,12 +134,8 @@ export default function PurchasePage() {
             }
             
             // Скрываем plan_7, если у пользователя есть оплаченные платежи
-            if (tariff.id === 'plan_7') {
-              if (hasPaidOrders) {
-                console.log('[PurchasePage] Filtering out plan_7 because user has paid orders');
-                return false;
-              }
-              console.log('[PurchasePage] Showing plan_7 because user has no paid orders');
+            if (tariff.id === 'plan_7' && hasPaidOrders) {
+              return false;
             }
             
             return true;
@@ -221,7 +204,7 @@ export default function PurchasePage() {
     };
 
     loadTariffs();
-  }, []);
+  }, [checkHasPaidOrders]);
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId) || plans[0];
 
@@ -339,16 +322,18 @@ export default function PurchasePage() {
       {/* Bottom Spacer - ensure space for Telegram UI or safe areas */}
       <div className="min-h-[calc(1rem+env(safe-area-inset-bottom))] w-full" aria-hidden="true" />
 
-      {selectedPlan && (
-        <PurchaseConfirmModal 
-          isOpen={isConfirmOpen}
-          onClose={() => setIsConfirmOpen(false)}
-          planId={selectedPlan.id}
-          price={selectedPlan.totalPrice}
-          duration={selectedPlan.duration}
-          devices={SUBSCRIPTION_CONFIG.DEFAULT_DEVICES_COUNT}
-          untilDate={calculateUntilDate(selectedPlan.days, subscription?.expiresAt)}
-        />
+      {selectedPlan && isConfirmOpen && (
+        <Suspense fallback={null}>
+          <PurchaseConfirmModal 
+            isOpen={isConfirmOpen}
+            onClose={() => setIsConfirmOpen(false)}
+            planId={selectedPlan.id}
+            price={selectedPlan.totalPrice}
+            duration={selectedPlan.duration}
+            devices={SUBSCRIPTION_CONFIG.DEFAULT_DEVICES_COUNT}
+            untilDate={calculateUntilDate(selectedPlan.days, subscription?.expiresAt)}
+          />
+        </Suspense>
       )}
     </main>
   );

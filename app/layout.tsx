@@ -11,6 +11,8 @@ const gtWalsheimPro = localFont({
   display: "swap",
   weight: "400",
   fallback: ['system-ui', 'sans-serif'],
+  preload: true, // Предзагрузка шрифта
+  adjustFontFallback: true, // Оптимизация fallback
 });
 
 // Using the same font for mono (no separate mono font available)
@@ -18,6 +20,7 @@ const geistMono = localFont({
   src: "../public/fonts/GTWalsheimPro-Regular.woff",
   variable: "--font-geist-mono",
   display: "swap",
+  preload: false, // Не предзагружаем, так как это тот же шрифт
 });
 
 export const metadata: Metadata = {

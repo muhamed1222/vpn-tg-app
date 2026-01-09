@@ -180,11 +180,16 @@ export const api = {
 
   // Получение VPN конфигурации
   getUserConfig: async () => {
-    // Используем прямой роут /user/config вместо /me
-    const configData = await apiFetch<{
-      ok: boolean;
-      config: string | null;
-    }>('user/config', { method: 'GET' });
+    // Используем кэширование для конфигурации (TTL: 2 минуты)
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    const configData = await cachedFetch(
+      'user_config',
+      () => apiFetch<{
+        ok: boolean;
+        config: string | null;
+      }>('user/config', { method: 'GET' }),
+      2 * 60 * 1000 // 2 минуты
+    );
 
     return {
       ok: configData.ok || false,
@@ -246,21 +251,35 @@ export const api = {
     planName: string;
   }>>('payments/history', { method: 'GET' }),
 
-  // Получение тарифов
-  getTariffs: () => apiFetch<Array<{
-    id: string;
-    name: string;
-    days: number;
-    price_stars: number;
-    price_rub?: number;
-  }>>('tariffs', { method: 'GET' }),
+  // Получение тарифов (с кэшированием на 5 минут)
+  getTariffs: async () => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      'tariffs',
+      () => apiFetch<Array<{
+        id: string;
+        name: string;
+        days: number;
+        price_stars: number;
+        price_rub?: number;
+      }>>('tariffs', { method: 'GET' }),
+      5 * 60 * 1000 // 5 минут
+    );
+  },
 
-  getReferralStats: () => apiFetch<{
-    totalCount: number;
-    trialCount: number;
-    premiumCount: number;
-    referralCode: string;
-  }>('user/referrals', { method: 'GET' }),
+  getReferralStats: async () => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      'referral_stats',
+      () => apiFetch<{
+        totalCount: number;
+        trialCount: number;
+        premiumCount: number;
+        referralCode: string;
+      }>('user/referrals', { method: 'GET' }),
+      2 * 60 * 1000 // 2 минуты
+    );
+  },
 
   // Создание заказа
   createOrder: (planId: string, paymentMethod?: string) => apiFetch<{
@@ -272,10 +291,17 @@ export const api = {
     body: JSON.stringify({ planId, paymentMethod })
   }),
 
-  // Автопродление
-  getAutorenewal: () => apiFetch<{
-    enabled: boolean;
-  }>('user/autorenewal', { method: 'GET' }),
+  // Автопродление (с кэшированием на 1 минуту)
+  getAutorenewal: async () => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      'autorenewal',
+      () => apiFetch<{
+        enabled: boolean;
+      }>('user/autorenewal', { method: 'GET' }),
+      60 * 1000 // 1 минута
+    );
+  },
 
   updateAutorenewal: (enabled: boolean) => apiFetch<{
     enabled: boolean;

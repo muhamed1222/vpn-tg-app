@@ -70,8 +70,10 @@ export default function Home() {
     return formatExpirationDate(subscription?.expiresAt);
   }, [subscription?.expiresAt]);
 
-  // Загружаем минимальную цену из тарифов с кэшированием
+  // Загружаем минимальную цену из тарифов с кэшированием (мемоизировано)
   useEffect(() => {
+    let cancelled = false;
+    
     const loadMinPrice = async () => {
       // Проверяем кэш (TTL: 5 минут)
       const CACHE_KEY = 'min_price';
@@ -79,8 +81,10 @@ export default function Home() {
       
       const cachedPrice = getCache<number>(CACHE_KEY);
       if (cachedPrice !== null) {
-        setMinPrice(cachedPrice);
-        setIsPriceLoading(false);
+        if (!cancelled) {
+          setMinPrice(cachedPrice);
+          setIsPriceLoading(false);
+        }
         return;
       }
 
@@ -89,42 +93,58 @@ export default function Home() {
       const { isAvailable } = checkTelegramWebApp();
 
       if (!isAvailable) {
-        // Если Telegram WebApp недоступен, не загружаем тарифы
+        if (!cancelled) {
+          setIsPriceLoading(false);
+        }
         return;
       }
 
       try {
         const { api } = await import('@/lib/api');
         const tariffs = await api.getTariffs();
+        
+        if (cancelled) return;
+        
         if (tariffs.length > 0) {
           // Находим минимальную цену среди всех тарифов в рублях (исключая plan_7)
           const validTariffs = tariffs.filter(t => t.id !== 'plan_7');
           if (validTariffs.length > 0) {
             const min = Math.min(...validTariffs.map(t => t.price_rub || t.price_stars));
-            setMinPrice(min);
-            // Сохраняем в кэш
-            setCache(CACHE_KEY, min, CACHE_TTL);
+            if (!cancelled) {
+              setMinPrice(min);
+              // Сохраняем в кэш
+              setCache(CACHE_KEY, min, CACHE_TTL);
+            }
           } else {
             // Если нет валидных тарифов, используем дефолт 99
-            setMinPrice(99);
+            if (!cancelled) {
+              setMinPrice(99);
+            }
           }
         }
       } catch (error) {
         // Логируем ошибку для мониторинга
-        logError('Failed to load tariffs for min price', error, {
-          page: 'home',
-          action: 'loadMinPrice'
-        });
+        if (!cancelled) {
+          logError('Failed to load tariffs for min price', error, {
+            page: 'home',
+            action: 'loadMinPrice'
+          });
+        }
         // Используем дефолтное значение - пользователь не увидит ошибку,
         // но цена будет отображаться корректно
       } finally {
-        setIsPriceLoading(false);
+        if (!cancelled) {
+          setIsPriceLoading(false);
+        }
       }
     };
 
     // Задержка для инициализации Telegram WebApp
     const timer = setTimeout(loadMinPrice, 500);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {

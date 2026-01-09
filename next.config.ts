@@ -2,11 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
+    // Удаляем console.log в production, оставляем только error и warn
+    removeConsole: process.env.NODE_ENV === "production" ? {
+      exclude: ['error', 'warn'],
+    } : false,
   },
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
+  // Оптимизация производительности
+  swcMinify: true,
+  poweredByHeader: false,
+  compress: true,
   async headers() {
     return [
       {

@@ -134,6 +134,8 @@ body.modal-open .app-viewport {
   content-visibility: auto;
   contain: layout style paint;
   backface-visibility: hidden;
+  /* Оптимизация производительности */
+  will-change: transform, opacity;
 }
 
 .css-dialog.open .css-dialog_content-item {
