@@ -36,6 +36,7 @@ export interface Step1WelcomeProps extends BaseStepProps {
   platform: PlatformType;
   onNext: () => void;
   onOtherDevice: () => void;
+  subscriptionStatus?: 'active' | 'inactive' | 'checking';
 }
 
 /**
@@ -45,8 +46,6 @@ export interface Step2InstallProps extends BaseStepProps {
   onBack: () => void;
   onNext: () => void;
   onInstall: () => void;
-  onCheckInstalled?: () => void;
-  isChecking?: boolean;
 }
 
 /**
@@ -57,9 +56,12 @@ export interface Step3SubscriptionProps extends BaseStepProps {
   subscriptionUrl?: string;
   isAdding?: boolean;
   isChecking?: boolean;
+  isDefaultUrl?: boolean;
+  checkFailed?: boolean;
   onBack: () => void;
   onNext: () => void;
   onAdd: () => void;
+  onCheckAgain?: () => void;
 }
 
 /**

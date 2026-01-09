@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Plug, ChevronLeft } from 'lucide-react';
+import { Plug, ChevronLeft, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { triggerHaptic } from '@/lib/telegram';
 import { analytics } from '@/lib/analytics';
@@ -13,7 +13,8 @@ export const Step1Welcome: React.FC<Step1WelcomeProps> = ({
     variants,
     platform,
     onNext,
-    onOtherDevice
+    onOtherDevice,
+    subscriptionStatus = 'checking'
 }) => {
     return (
         <motion.div
@@ -47,6 +48,16 @@ export const Step1Welcome: React.FC<Step1WelcomeProps> = ({
                     <p className="text-white/60 text-base leading-relaxed max-w-[280px] mx-auto">
                         Настройка VPN происходит в 4 простых шага и занимает пару минут
                     </p>
+                    {subscriptionStatus === 'inactive' && (
+                        <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg max-w-[280px] mx-auto">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle size={18} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-yellow-500/90 text-xs leading-relaxed text-left">
+                                    Для настройки VPN требуется активная подписка. Если у вас нет подписки, вы можете продолжить, но на шаге 3 потребуется добавить подписку вручную.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

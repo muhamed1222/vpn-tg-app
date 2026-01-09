@@ -71,7 +71,7 @@ export const Step4Complete: React.FC<Step4CompleteProps> = ({
                         }}
                         disabled={isChecking}
                         className="w-full h-fit bg-transparent border border-white/20 hover:bg-white/5 active:scale-[0.98] transition-all rounded-[10px] py-[14px] flex items-center justify-center gap-2 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label="Проверить статус VPN"
+                        aria-label="Проверить статус подписки VPN"
                         aria-busy={isChecking}
                     >
                         {isChecking ? (
@@ -80,7 +80,7 @@ export const Step4Complete: React.FC<Step4CompleteProps> = ({
                                 <span className="text-base font-medium">Проверка...</span>
                             </>
                         ) : (
-                            <span className="text-base font-medium">Проверить статус VPN</span>
+                            <span className="text-base font-medium">Проверить статус подписки</span>
                         )}
                     </button>
                 )}

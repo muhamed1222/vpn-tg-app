@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { logError } from '@/lib/utils/logging';
 import { analytics } from '@/lib/analytics';
-import { handleExternalLink, validateSubscriptionUrl, handleDeepLinkError, checkAppInstalled } from '@/lib/utils/setupHelpers';
+import { handleExternalLink, validateSubscriptionUrl, handleDeepLinkError } from '@/lib/utils/setupHelpers';
 import type { StepDirection } from '@/types/setup';
 
 // Dynamic imports for code splitting - only load steps when needed
@@ -35,9 +35,11 @@ export default function SetupPage() {
   const [platform, setPlatform] = useState<string>('Devices');
   const [isLoadingSubscriptionUrl, setIsLoadingSubscriptionUrl] = useState(true);
   const [isAddingSubscription, setIsAddingSubscription] = useState(false);
-  const [isCheckingApp, setIsCheckingApp] = useState(false);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const [isCheckingVpn, setIsCheckingVpn] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'checking'>('checking');
+  const [isDefaultSubscriptionUrl, setIsDefaultSubscriptionUrl] = useState(false);
+  const [subscriptionCheckFailed, setSubscriptionCheckFailed] = useState(false);
 
   // Detect platform after mount to avoid hydration mismatch
   // Note: This setState in useEffect is intentional to avoid SSR/CSR mismatch
@@ -45,16 +47,36 @@ export default function SetupPage() {
     setPlatform(getTelegramPlatform());
   }, []);
 
+  // Проверка статуса подписки перед началом настройки
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const status = await api.getUserStatus();
+        setSubscriptionStatus(status.ok && status.status === 'active' ? 'active' : 'inactive');
+      } catch (error) {
+        logError('Failed to check subscription status', error, {
+          page: 'setup',
+          action: 'checkSubscription'
+        });
+        setSubscriptionStatus('inactive');
+      }
+    };
+    checkSubscription();
+  }, []);
+
   // Загружаем реальную ссылку на подписку пользователя
   useEffect(() => {
     const loadSubscriptionUrl = async () => {
       try {
         const configData = await api.getUserConfig();
+        const defaultUrl = `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
+        
         if (configData.ok && configData.config) {
           // Валидация URL перед использованием
           try {
             new URL(configData.config);
             setSubscriptionUrl(configData.config);
+            setIsDefaultSubscriptionUrl(false);
           } catch (urlError) {
             logError('Invalid subscription URL format', urlError, {
               page: 'setup',
@@ -62,11 +84,13 @@ export default function SetupPage() {
               url: configData.config
             });
             // Используем дефолтную ссылку при невалидном URL
-            setSubscriptionUrl(`${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`);
+            setSubscriptionUrl(defaultUrl);
+            setIsDefaultSubscriptionUrl(true);
           }
         } else {
           // Если конфиг не получен, используем дефолтную ссылку
-          setSubscriptionUrl(`${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`);
+          setSubscriptionUrl(defaultUrl);
+          setIsDefaultSubscriptionUrl(true);
         }
       } catch (error) {
         logError('Failed to load subscription URL', error, {
@@ -79,7 +103,11 @@ export default function SetupPage() {
           error: error instanceof Error ? error.message : String(error)
         });
         // Используем дефолтную ссылку при ошибке
-        setSubscriptionUrl(`${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`);
+        const defaultUrl = `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
+        setSubscriptionUrl(defaultUrl);
+        setIsDefaultSubscriptionUrl(true);
+      } finally {
+        setIsLoadingSubscriptionUrl(false);
       }
     };
     loadSubscriptionUrl();
@@ -115,46 +143,6 @@ export default function SetupPage() {
     }
   };
 
-  /* 
-    Проверка установки приложения через deep link
-  */
-  const handleCheckAppInstalled = async () => {
-    setIsCheckingApp(true);
-    analytics.event('setup_check_app_installed', { step: 2 });
-    
-    try {
-      // Формируем test deep link для проверки
-      const testDeepLink = platform === 'iOS' 
-        ? 'v2raytun://test' 
-        : 'happ://test';
-      
-      const isInstalled = await checkAppInstalled(testDeepLink);
-      
-      if (isInstalled) {
-        analytics.event('setup_app_detected', { step: 2, platform });
-        goToStep(3);
-      } else {
-        // Показываем предупреждение, но позволяем продолжить
-        const webApp = getTelegramWebApp();
-        if (webApp && webApp.showAlert) {
-          webApp.showAlert('Приложение не обнаружено. Убедитесь, что вы установили v2RayTun, или нажмите "Уже установлено" для продолжения.');
-        }
-      }
-    } catch (error) {
-      logError('Failed to check app installation', error, {
-        page: 'setup',
-        action: 'handleCheckAppInstalled',
-        platform
-      });
-      analytics.event('setup_error', {
-        step: 2,
-        action: 'handleCheckAppInstalled',
-        error: error instanceof Error ? error.message : String(error)
-      });
-    } finally {
-      setIsCheckingApp(false);
-    }
-  };
 
   /* 
     Шаг 3: Добавление подписки через Deep Link.
@@ -168,6 +156,7 @@ export default function SetupPage() {
     if (isAddingSubscription) return; // Предотвращаем множественные клики
     
     setIsAddingSubscription(true);
+    setSubscriptionCheckFailed(false);
     
     try {
       // Используем реальную ссылку на подписку пользователя
@@ -188,7 +177,7 @@ export default function SetupPage() {
         // Показываем сообщение пользователю
         const webApp = getTelegramWebApp();
         if (webApp && webApp.showAlert) {
-          webApp.showAlert('Ошибка: неверный формат ссылки на подписку. Попробуйте обновить страницу.');
+          webApp.showAlert('Ошибка: неверный формат ссылки на подписку. Попробуйте обновить страницу или скопируйте ссылку и добавьте её вручную в приложении.');
         }
         setIsAddingSubscription(false);
         return;
@@ -203,39 +192,108 @@ export default function SetupPage() {
 
       try {
         handleExternalLink(subUrl);
-        analytics.event('setup_subscription_added', { step: 3, platform });
+        analytics.event('setup_subscription_deeplink_opened', { step: 3, platform });
         
-        // Запускаем проверку успешности добавления подписки через 2 секунды
-        setTimeout(() => {
-          handleCheckSubscriptionAdded();
-        }, 2000);
+        // Запускаем проверку успешности добавления подписки
+        handleCheckSubscriptionAdded();
       } catch (error) {
-        await handleDeepLinkError(subUrl, error, 'handleAddSubscription');
-      } finally {
+        logError('Failed to open deep link for subscription', error, {
+          page: 'setup',
+          action: 'handleAddSubscription',
+          url: subUrl,
+          platform
+        });
+        analytics.event('setup_error', {
+          step: 3,
+          action: 'handleAddSubscription',
+          error: error instanceof Error ? error.message : String(error),
+          type: 'deep_link_error'
+        });
+        
+        // Показываем понятное сообщение об ошибке
+        const webApp = getTelegramWebApp();
+        if (webApp && webApp.showAlert) {
+          webApp.showAlert('Не удалось открыть приложение автоматически. Пожалуйста, скопируйте ссылку на подписку и добавьте её вручную в приложении v2RayTun. Нажмите "Как добавить вручную?" для инструкции.');
+        }
+        
+        // Позволяем пользователю продолжить вручную
+        setSubscriptionCheckFailed(true);
         setIsAddingSubscription(false);
       }
     } catch (error) {
       logError('Failed to add subscription', error, {
         page: 'setup',
-        action: 'handleAddSubscription'
+        action: 'handleAddSubscription',
+        platform
       });
+      analytics.event('setup_error', {
+        step: 3,
+        action: 'handleAddSubscription',
+        error: error instanceof Error ? error.message : String(error),
+        type: 'general_error'
+      });
+      
+      // Показываем сообщение об ошибке
+      const webApp = getTelegramWebApp();
+      if (webApp && webApp.showAlert) {
+        webApp.showAlert('Произошла ошибка при добавлении подписки. Попробуйте скопировать ссылку и добавить её вручную в приложении v2RayTun.');
+      }
+      
+      setSubscriptionCheckFailed(true);
       setIsAddingSubscription(false);
     }
   };
 
   /* 
-    Проверка успешности добавления подписки
+    Проверка успешности добавления подписки с повторными попытками
   */
   const handleCheckSubscriptionAdded = async () => {
     setIsCheckingSubscription(true);
+    setSubscriptionCheckFailed(false);
     analytics.event('setup_check_subscription', { step: 3 });
     
+    // Функция для проверки с повторными попытками
+    const checkWithRetry = async (attempts = 0, maxAttempts = 3): Promise<boolean> => {
+      try {
+        // Проверяем конфигурацию пользователя через API
+        const configData = await api.getUserConfig();
+        
+        if (configData.ok && configData.config) {
+          // Если конфигурация получена, считаем что подписка добавлена успешно
+          return true;
+        }
+        
+        // Если не получили конфигурацию и есть еще попытки, ждем и повторяем
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Ждем 2 секунды между попытками
+          return checkWithRetry(attempts + 1, maxAttempts);
+        }
+        
+        return false;
+      } catch (error) {
+        logError('Failed to check subscription addition', error, {
+          page: 'setup',
+          action: 'handleCheckSubscriptionAdded',
+          attempt: attempts
+        });
+        
+        // Если есть еще попытки, повторяем
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return checkWithRetry(attempts + 1, maxAttempts);
+        }
+        
+        return false;
+      }
+    };
+    
     try {
-      // Проверяем конфигурацию пользователя через API
-      const configData = await api.getUserConfig();
+      // Ждем 5 секунд перед первой проверкой
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
-      if (configData.ok && configData.config) {
-        // Если конфигурация получена, считаем что подписка добавлена успешно
+      const success = await checkWithRetry();
+      
+      if (success) {
         analytics.event('setup_subscription_confirmed', { step: 3 });
         const webApp = getTelegramWebApp();
         if (webApp && webApp.showAlert) {
@@ -246,10 +304,11 @@ export default function SetupPage() {
           goToStep(4);
         }, 1000);
       } else {
-        // Если конфигурация не получена, показываем предупреждение
+        // Если проверка не удалась, показываем предупреждение
+        setSubscriptionCheckFailed(true);
         const webApp = getTelegramWebApp();
         if (webApp && webApp.showAlert) {
-          webApp.showAlert('Не удалось подтвердить добавление подписки. Если вы добавили подписку вручную, нажмите "Далее" для продолжения.');
+          webApp.showAlert('Не удалось подтвердить добавление подписки. Если вы добавили подписку вручную, нажмите "Проверить снова" или "Далее" для продолжения.');
         }
       }
     } catch (error) {
@@ -262,14 +321,16 @@ export default function SetupPage() {
         action: 'handleCheckSubscriptionAdded',
         error: error instanceof Error ? error.message : String(error)
       });
-      // В случае ошибки позволяем пользователю продолжить вручную
+      setSubscriptionCheckFailed(true);
     } finally {
       setIsCheckingSubscription(false);
     }
   };
 
   /* 
-    Проверка статуса VPN подключения
+    Проверка статуса подписки VPN (не реального подключения)
+    Примечание: Эта проверка показывает только статус подписки в API,
+    а не реальное VPN подключение на устройстве пользователя.
   */
   const handleCheckVpnStatus = async () => {
     setIsCheckingVpn(true);
@@ -281,23 +342,28 @@ export default function SetupPage() {
       if (statusData.ok && statusData.status === 'active') {
         const webApp = getTelegramWebApp();
         if (webApp && webApp.showAlert) {
-          webApp.showAlert('VPN подключение активно!');
+          webApp.showAlert('Подписка VPN активна в системе. Убедитесь, что вы включили VPN в приложении v2RayTun для использования защищенного подключения.');
         }
-        analytics.event('setup_vpn_confirmed', { step: 4 });
+        analytics.event('setup_vpn_subscription_confirmed', { step: 4 });
       } else {
         const webApp = getTelegramWebApp();
         if (webApp && webApp.showAlert) {
-          webApp.showAlert('VPN подключение не активно. Проверьте настройки приложения.');
+          webApp.showAlert('Подписка VPN не активна в системе. Проверьте, что вы правильно добавили подписку на шаге 3, и что подписка не истекла.');
         }
       }
     } catch (error) {
-      logError('Failed to check VPN status', error, {
+      logError('Failed to check VPN subscription status', error, {
         page: 'setup',
         action: 'handleCheckVpnStatus'
       });
+      analytics.event('setup_error', {
+        step: 4,
+        action: 'handleCheckVpnStatus',
+        error: error instanceof Error ? error.message : String(error)
+      });
       const webApp = getTelegramWebApp();
       if (webApp && webApp.showAlert) {
-        webApp.showAlert('Не удалось проверить статус VPN. Попробуйте позже.');
+        webApp.showAlert('Не удалось проверить статус подписки. Убедитесь, что вы включили VPN в приложении v2RayTun для использования защищенного подключения.');
       }
     } finally {
       setIsCheckingVpn(false);
@@ -372,6 +438,7 @@ export default function SetupPage() {
             platform={platform}
             onNext={() => goToStep(2)}
             onOtherDevice={handleOtherDeviceClick}
+            subscriptionStatus={subscriptionStatus}
           />
         );
       case 2:
@@ -383,8 +450,6 @@ export default function SetupPage() {
             onBack={() => goToStep(1)}
             onNext={() => goToStep(3)}
             onInstall={handleInstallClick}
-            onCheckInstalled={handleCheckAppInstalled}
-            isChecking={isCheckingApp}
           />
         );
       case 3:
@@ -397,9 +462,12 @@ export default function SetupPage() {
             subscriptionUrl={subscriptionUrl || undefined}
             isAdding={isAddingSubscription}
             isChecking={isCheckingSubscription}
+            isDefaultUrl={isDefaultSubscriptionUrl}
+            checkFailed={subscriptionCheckFailed}
             onBack={() => goToStep(2)}
             onNext={() => goToStep(4)}
             onAdd={handleAddSubscription}
+            onCheckAgain={handleCheckSubscriptionAdded}
           />
         );
       case 4:
