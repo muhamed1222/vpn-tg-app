@@ -8,10 +8,6 @@ import { logError } from '@/lib/utils/logging';
 import { ContestSummary, ReferralFriend, TicketHistoryEntry } from '@/types/contest';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { 
-  mockContestSummary, 
-  mockFriends, 
-  mockTicketsHistory
-} from '@/lib/mocks/contest-mocks';
 
 // Lazy loading для компонентов
 const ContestSummaryCard = lazy(() =>
@@ -41,7 +37,25 @@ export default function ContestPage() {
     setError(null);
 
     try {
-      // Имитируем задержку загрузки для реалистичности
+      // Проверяем наличие активного конкурса
+      if (!activeContestData.ok || !activeContestData.contest) {
+        setError('Нет активного конкурса');
+        setLoading(false);
+        return;
+      }
+
+      // Проверяем наличие сводки
+      if (!summaryData.ok || !summaryData.summary) {
+        setError('Не удалось загрузить данные конкурса');
+        setLoading(false);
+        return;
+      }
+
+      setSummary(summaryData.summary);
+      setFriends(friendsData.friends || []);
+      setTickets(ticketsData.tickets || []);
+
+      // Раскомментируйте для реальных API запросов:узки для реалистичности
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Используем моковые данные
@@ -49,9 +63,6 @@ export default function ContestPage() {
       setFriends(mockFriends);
       setTickets(mockTicketsHistory);
 
-      // Раскомментируйте для реальных API запросов:
-      // const activeContest = await api.getActiveContest();
-      // if (!activeContest || !activeContest.ok) {
       //   setError('Нет активного конкурса');
       //   setLoading(false);
       //   return;
