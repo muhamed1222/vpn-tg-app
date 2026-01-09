@@ -165,7 +165,7 @@ export default function Home() {
 
   return (
     <main
-      className="relative min-h-[var(--tg-viewport-height,100vh)] overflow-hidden font-sans select-none flex flex-col bg-main-gradient safe-area-padding"
+      className="relative min-h-[var(--tg-viewport-height,100vh)] overflow-hidden font-sans select-none flex flex-col items-center bg-main-gradient safe-area-padding justify-start"
       role="main"
       aria-label="Главная страница Outlivion VPN"
     >
@@ -182,16 +182,15 @@ export default function Home() {
       </div>
 
       {/* Розыгрыш Баннер */}
-      <div className="relative mx-4 mb-4 z-10 mt-4">
-        <div className="bg-gradient-to-r from-[#F55128] to-[#FF6B3D] rounded-[16px] px-4 py-4 shadow-lg border border-white/10 backdrop-blur-[12px]">
+      <div className="relative mx-auto mb-4 z-10 mt-4 max-w-[450px] w-full -ml-[43px] -mr-[43px]">
+        <div className="bg-gradient-to-r from-[#F55128] to-[#FF6B3D] rounded-[16px] px-1.5 py-1.5 shadow-lg border border-white/10 backdrop-blur-[12px]">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 flex-1">
+            <div className="flex items-center flex-1" style={{ gap: '5px' }}>
               <div className="p-2 bg-white/20 rounded-xl">
                 <Gift size={24} className="text-white" aria-hidden="true" />
               </div>
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-white mb-0.5">Розыгрыш</h2>
-                <p className="text-white/90 text-sm">Участвуй и выигрывай призы!</p>
+                <h2 className="text-lg font-semibold text-white">Розыгрыш</h2>
               </div>
             </div>
             <button
@@ -209,7 +208,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Main Card */}
-      <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 bg-[#121212]/80 rounded-[16px] px-[14px] py-[14px] shadow-2xl border border-white/5 backdrop-blur-[12px] z-10">
+      <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[450px] bg-[#121212]/80 rounded-[16px] px-[14px] py-[14px] shadow-2xl border border-white/5 backdrop-blur-[12px] z-10">
         {/* 
           Header Info - Информационный блок с основными статусами
           

@@ -24,9 +24,38 @@ export const login = async (silent = false): Promise<LoginResult> => {
     subStore.setLoading(true);
   }
   
+  // Получаем базового пользователя из Telegram SDK для немедленного отображения
+  const tgUser = getTelegramUser();
+  
+  // В режиме разработки при локальном запуске (без Telegram) используем mock данные
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  // Проверяем, что это действительно браузер (не Telegram) и нет валидного initData
+  const isLocalDev = typeof window !== 'undefined' && (!webApp || !webApp.initData);
+
+  if (isDevelopment && isLocalDev) {
+    // В dev режиме без Telegram используем mock пользователя и продолжаем работу
+    console.log('[Auth] Development mode: Using mock user data for local development');
+    if (tgUser) {
+      userStore.setUser({
+        id: tgUser.id || 12345678,
+        firstName: tgUser.first_name || 'Developer',
+        username: tgUser.username || 'dev',
+      });
+    } else {
+      userStore.setUser({
+        id: 12345678,
+        firstName: 'Developer',
+        username: 'dev',
+      });
+    }
+    subStore.setStatus('none');
+    if (!silent) {
+      subStore.setLoading(false);
+    }
+    return { success: true }; // Возвращаем success без попытки авторизации
+  }
+
   try {
-    // Получаем базового пользователя из Telegram SDK для немедленного отображения
-    const tgUser = getTelegramUser();
     if (tgUser) {
       userStore.setUser({
         id: tgUser.id,
@@ -59,7 +88,25 @@ export const login = async (silent = false): Promise<LoginResult> => {
       errorMessage = error.message || 'Произошла ошибка при авторизации';
     }
 
-    // Показываем уведомление пользователю через Telegram WebApp
+
+    // В режиме разработки при локальном запуске (без Telegram) не показываем ошибки
+    // Проверяем снова в catch блоке, на случай если проверка выше не сработала
+    if (isDevelopment && isLocalDev) {
+      // В dev режиме без Telegram просто логируем и продолжаем работу
+      console.warn('[Auth] Development mode: API error occurred, continuing without backend auth', error);
+      // Устанавливаем дефолтного пользователя для разработки, если его еще нет
+      if (!tgUser) {
+        userStore.setUser({
+          id: 12345678,
+          firstName: 'Developer',
+          username: 'dev',
+        });
+      }
+      subStore.setStatus('none');
+      return { success: true }; // Возвращаем success, чтобы приложение продолжало работать
+    }
+
+    // В production или при работе через Telegram показываем ошибку пользователю
     if (webApp) {
       try {
         // Проверяем, поддерживается ли метод showAlert (доступно с версии 6.2)
@@ -74,8 +121,10 @@ export const login = async (silent = false): Promise<LoginResult> => {
         alert(errorMessage);
       }
     } else {
-      // Fallback для браузера
-      alert(errorMessage);
+      // Fallback для браузера (только в production)
+      if (!isDevelopment) {
+        alert(errorMessage);
+      }
     }
 
     // В случае ошибки выставляем статус "none"

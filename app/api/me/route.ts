@@ -23,31 +23,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Валидируем подпись initData на стороне Next.js для безопасности
-    const botToken = serverConfig.telegram.botToken;
+    // В режиме разработки пропускаем валидацию для STUB initData
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isStubData = initData.includes('query_id=STUB');
 
-    if (!botToken) {
-      logError('[API /me] CRITICAL ERROR: TELEGRAM_BOT_TOKEN is not set in environment variables', undefined, {
-        page: 'api',
-        action: 'validateConfig',
-        endpoint: '/api/me'
-      });
-      return NextResponse.json(
-        { error: 'Внутренняя ошибка конфигурации сервера' },
-        { status: 500 }
-      );
-    }
+    // Валидируем подпись initData на стороне Next.js для безопасности (только если не STUB в dev)
+    if (!isDevelopment || !isStubData) {
+      const botToken = serverConfig.telegram.botToken;
 
-    const isValid = validateTelegramInitData(
-      initData,
-      botToken
-    );
+      if (!botToken) {
+        // В dev режиме без токена просто пропускаем валидацию (бэкенд проверит)
+        if (!isDevelopment) {
+          logError('[API /me] CRITICAL ERROR: TELEGRAM_BOT_TOKEN is not set in environment variables', undefined, {
+            page: 'api',
+            action: 'validateConfig',
+            endpoint: '/api/me'
+          });
+          return NextResponse.json(
+            { error: 'Внутренняя ошибка конфигурации сервера' },
+            { status: 500 }
+          );
+        }
+      } else {
+        const isValid = validateTelegramInitData(
+          initData,
+          botToken
+        );
 
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Невалидная подпись данных Telegram. Пожалуйста, перезапустите приложение.' },
-        { status: 401 }
-      );
+        if (!isValid) {
+          return NextResponse.json(
+            { error: 'Невалидная подпись данных Telegram. Пожалуйста, перезапустите приложение.' },
+            { status: 401 }
+          );
+        }
+      }
     }
     // Если токен не установлен, просто проксируем запрос на бэкенд
 

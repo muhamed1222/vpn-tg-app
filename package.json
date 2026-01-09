@@ -35,6 +35,6 @@
     "jsdom": "^24",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^1"
+    "vitest": "^4.0.16"
   }
 }

@@ -68,12 +68,46 @@ export const apiFetch = async <T = unknown>(
       );
     });
 
-    // Парсим ответ даже если статус не OK
-    const data = await response.json().catch(() => ({}));
+    // Проверяем Content-Type для правильной обработки ответа
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+
+    // Парсим ответ только если это JSON, иначе пытаемся получить текст
+    let data: any = {};
+    let errorMessage = '';
+
+    if (isJson) {
+      try {
+        data = await response.json();
+      } catch {
+        // Если парсинг JSON не удался, оставляем пустой объект
+        data = {};
+      }
+    } else {
+      // Если ответ не JSON (например, HTML страница 404), получаем текст
+      try {
+        const text = await response.text();
+        // Если текст начинается с HTML, это значит, что роут не найден
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<!doctype')) {
+          errorMessage = 'API endpoint не найден. Проверьте конфигурацию сервера.';
+        } else {
+          // Попытка парсить как JSON на всякий случай
+          try {
+            data = JSON.parse(text);
+          } catch {
+            errorMessage = text.substring(0, 200) || 'Неизвестная ошибка';
+          }
+        }
+      } catch {
+        // Если не удалось прочитать текст, используем стандартное сообщение
+      }
+    }
 
     if (!response.ok) {
       // Формируем понятное сообщение об ошибке
-      let errorMessage = data.error || data.message;
+      if (!errorMessage) {
+        errorMessage = data.error || data.message;
+      }
 
       if (!errorMessage) {
         // Если нет сообщения в ответе, формируем по статусу
@@ -85,7 +119,7 @@ export const apiFetch = async <T = unknown>(
             errorMessage = 'Доступ запрещен. Проверьте права доступа.';
             break;
           case 404:
-            errorMessage = 'Запрашиваемый ресурс не найден.';
+            errorMessage = 'API endpoint не найден. Проверьте, что сервер запущен и роут доступен.';
             break;
           case 500:
             errorMessage = 'Ошибка сервера. Попробуйте позже.';
