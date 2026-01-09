@@ -69,33 +69,38 @@ export default function PurchasePage() {
   
   const { subscription } = useSubscriptionStore();
 
-  // Проверяем, есть ли у пользователя оплаченные платежи
+  // Проверяем, есть ли у пользователя оплаченные платежи или активная подписка
   const checkHasPaidOrders = async (): Promise<boolean> => {
     try {
+      // Проверяем историю платежей
       const payments = await api.getPaymentsHistory();
-      // Проверяем, есть ли хотя бы один успешный платеж
-      return payments.some(p => p.status === 'success');
+      const hasPaidPayments = payments.some(p => p.status === 'success' || p.status === 'paid');
+      
+      // Также проверяем статус подписки
+      const statusData = await api.getUserStatus();
+      const hasActiveSubscription = statusData.ok && statusData.status === 'active';
+      
+      // Если есть активная подписка или оплаченные платежи - скрываем plan_7
+      return hasPaidPayments || hasActiveSubscription;
     } catch (error) {
-      // Если не удалось загрузить историю, возвращаем false (показываем все тарифы)
+      // Если не удалось загрузить данные, проверяем локальное состояние подписки
+      if (subscription && subscription.status === 'active') {
+        return true;
+      }
+      // Если не удалось проверить, возвращаем false (показываем все тарифы)
       return false;
     }
   };
 
-  // Загружаем тарифы с бэкенда с кэшированием
+  // Загружаем тарифы с бэкенда
   useEffect(() => {
     const loadTariffs = async () => {
-      // Проверяем кэш (TTL: 5 минут)
       const CACHE_KEY = 'tariffs';
-      const CACHE_TTL = 5 * 60 * 1000; // 5 минут
       
-      const cachedTariffs = getCache<Plan[]>(CACHE_KEY);
-      if (cachedTariffs !== null && cachedTariffs.length > 0) {
-        setPlans(cachedTariffs);
-        const defaultPlan = cachedTariffs.find(p => p.id === 'plan_180') || cachedTariffs[0];
-        setSelectedPlanId(defaultPlan.id);
-        setLoading(false);
-        return;
-      }
+      // Очищаем кэш тарифов при загрузке, чтобы всегда получать актуальные данные
+      // Это важно, так как plan_7 должен скрываться после первой покупки
+      const { removeCache } = await import('@/lib/utils/cache');
+      removeCache(CACHE_KEY);
 
       // Проверяем доступность Telegram WebApp
       const { checkTelegramWebApp } = await import('@/lib/telegram-fallback');
@@ -172,8 +177,8 @@ export default function PurchasePage() {
 
         setPlans(transformedPlans);
         
-        // Сохраняем в кэш
-        setCache(CACHE_KEY, transformedPlans, CACHE_TTL);
+        // НЕ сохраняем в кэш, чтобы всегда проверять актуальное состояние
+        // setCache(CACHE_KEY, transformedPlans, CACHE_TTL);
         
         // Устанавливаем выбранный тариф по умолчанию (6 месяцев)
         if (transformedPlans.length > 0) {
