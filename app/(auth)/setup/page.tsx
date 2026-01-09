@@ -98,8 +98,6 @@ export default function SetupPage() {
             variants={STEP_ANIMATION_VARIANTS}
             onBack={goBack}
             onRestart={() => goToStep(1)}
-            onCheckVpn={subscriptionSetup.checkVpnStatus}
-            isChecking={false}
           />
         );
       default:

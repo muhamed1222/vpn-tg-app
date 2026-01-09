@@ -72,6 +72,4 @@ export interface Step3SubscriptionProps extends BaseStepProps {
 export interface Step4CompleteProps extends BaseStepProps {
   onBack: () => void;
   onRestart?: () => void;
-  onCheckVpn?: () => void;
-  isChecking?: boolean;
 }

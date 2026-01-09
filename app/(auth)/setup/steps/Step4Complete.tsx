@@ -14,9 +14,7 @@ export const Step4Complete: React.FC<Step4CompleteProps> = memo(({
     direction,
     variants,
     onBack,
-    onRestart,
-    onCheckVpn,
-    isChecking = false
+    onRestart
 }) => {
     return (
         <motion.div
@@ -46,44 +44,13 @@ export const Step4Complete: React.FC<Step4CompleteProps> = memo(({
 
                 <div className="space-y-4">
                     <h1 className="text-2xl font-medium text-white tracking-tight">Готово!</h1>
-                    <div className="space-y-3 text-white/60 text-base leading-relaxed max-w-[300px] mx-auto">
-                        <p>
-                            Настройка завершена! Теперь включите VPN в приложении {VPN_APP_NAME}:
-                        </p>
-                        <ol className="list-decimal list-inside space-y-2 text-left">
-                            <li>Откройте приложение {VPN_APP_NAME}</li>
-                            <li>Найдите кнопку включения VPN (обычно в верхней части экрана)</li>
-                            <li>Нажмите на неё, чтобы активировать VPN</li>
-                        </ol>
-                        <p className="text-white/40 text-sm mt-4">
-                            После включения VPN вы сможете безопасно пользоваться интернетом
-                        </p>
-                    </div>
+                    <p className="text-white/60 text-base leading-relaxed max-w-[300px] mx-auto">
+                        Настройка завершена! Теперь включите VPN в приложении {VPN_APP_NAME}
+                    </p>
                 </div>
             </div>
 
             <div className="relative z-10 p-6 space-y-3 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-                {onCheckVpn && (
-                    <button
-                        onClick={() => {
-                            triggerHaptic('medium');
-                            onCheckVpn();
-                        }}
-                        disabled={isChecking}
-                        className="w-full h-fit bg-transparent border border-white/20 hover:bg-white/5 active:scale-[0.98] transition-all rounded-[10px] py-[14px] flex items-center justify-center gap-2 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label="Проверить статус подписки VPN"
-                        aria-busy={isChecking}
-                    >
-                        {isChecking ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                                <span className="text-base font-medium">Проверка...</span>
-                            </>
-                        ) : (
-                            <span className="text-base font-medium">Проверить статус подписки</span>
-                        )}
-                    </button>
-                )}
                 <Link
                     href="/"
                     onClick={() => {
