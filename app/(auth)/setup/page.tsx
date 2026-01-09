@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
 import { InfoModal } from '@/components/blocks/InfoModal';
@@ -34,31 +34,31 @@ export default function SetupPage() {
   const subscriptionSetup = useSubscriptionSetup();
   const appInstall = useAppInstall();
 
-  // Обработчик для установки на другое устройство
-  const handleOtherDeviceClick = () => {
+  // Обработчик для установки на другое устройство (мемоизирован)
+  const handleOtherDeviceClick = useCallback(() => {
     analytics.event('setup_other_device', { step: 1 });
     handleExternalLink(config.support.helpBaseUrl);
-  };
+  }, []);
 
-  // Обработчик добавления подписки с последующей проверкой
-  const handleAddSubscription = async () => {
+  // Обработчик добавления подписки с последующей проверкой (мемоизирован)
+  const handleAddSubscription = useCallback(async () => {
     await subscriptionSetup.addSubscription(platform);
     const success = await subscriptionSetup.checkSubscriptionAdded();
     if (success) {
       setTimeout(() => goToStep(4), 1000);
     }
-  };
+  }, [platform, subscriptionSetup, goToStep]);
 
-
-  // Обработчик повторной проверки подписки
-  const handleCheckAgain = async () => {
+  // Обработчик повторной проверки подписки (мемоизирован)
+  const handleCheckAgain = useCallback(async () => {
     const success = await subscriptionSetup.checkSubscriptionAdded();
     if (success) {
       setTimeout(() => goToStep(4), 1000);
     }
-  };
+  }, [subscriptionSetup, goToStep]);
 
-  const renderStep = () => {
+  // Мемоизированный рендер шагов
+  const renderStep = useMemo(() => {
     switch (step) {
       case 1:
         return (
@@ -116,7 +116,7 @@ export default function SetupPage() {
       default:
         return null;
     }
-  };
+  }, [step, direction, platform, goNext, goBack, goToStep, subscriptionSetup, appInstall, handleOtherDeviceClick, handleAddSubscription, handleCheckAgain]);
 
   return (
     <main className="w-full bg-black text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
@@ -138,7 +138,7 @@ export default function SetupPage() {
         </div>
 
         <AnimatePresence mode="wait" custom={direction}>
-          {renderStep()}
+          {renderStep}
         </AnimatePresence>
       </div>
 

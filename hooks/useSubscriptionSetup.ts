@@ -44,66 +44,63 @@ export function useSubscriptionSetup(): UseSubscriptionSetupReturn {
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const [subscriptionCheckFailed, setSubscriptionCheckFailed] = useState(false);
 
-  // Загружаем реальную ссылку на подписку пользователя
+  // Загружаем данные параллельно для оптимизации
   useEffect(() => {
-    const loadSubscriptionUrl = async () => {
-      try {
-        const configData = await api.getUserConfig();
-        const defaultUrl = `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
-        
-        if (configData.ok && configData.config) {
-          try {
-            new URL(configData.config);
-            setSubscriptionUrl(configData.config);
-            setIsDefaultSubscriptionUrl(false);
-          } catch (urlError) {
-            logError('Invalid subscription URL format', urlError, {
-              page: 'setup',
-              action: 'validateSubscriptionUrl',
-              url: configData.config
-            });
-            setSubscriptionUrl(defaultUrl);
-            setIsDefaultSubscriptionUrl(true);
-          }
-        } else {
+    const loadData = async () => {
+      const defaultUrl = `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
+      
+      // Загружаем данные параллельно
+      const [configData, statusData] = await Promise.allSettled([
+        api.getUserConfig(),
+        api.getUserStatus()
+      ]);
+
+      // Обрабатываем ссылку на подписку
+      if (configData.status === 'fulfilled' && configData.value.ok && configData.value.config) {
+        try {
+          new URL(configData.value.config);
+          setSubscriptionUrl(configData.value.config);
+          setIsDefaultSubscriptionUrl(false);
+        } catch (urlError) {
+          logError('Invalid subscription URL format', urlError, {
+            page: 'setup',
+            action: 'validateSubscriptionUrl',
+            url: configData.value.config
+          });
           setSubscriptionUrl(defaultUrl);
           setIsDefaultSubscriptionUrl(true);
         }
-      } catch (error) {
-        logError('Failed to load subscription URL', error, {
-          page: 'setup',
-          action: 'loadSubscriptionUrl'
-        });
-        analytics.event('setup_error', {
-          step: 1,
-          action: 'loadSubscriptionUrl',
-          error: error instanceof Error ? error.message : String(error)
-        });
-        const defaultUrl = `${config.payment.subscriptionBaseUrl}/api/sub/${SUBSCRIPTION_CONFIG.DEFAULT_SUBSCRIPTION_ID}`;
+      } else {
         setSubscriptionUrl(defaultUrl);
         setIsDefaultSubscriptionUrl(true);
-      } finally {
-        setIsLoadingSubscriptionUrl(false);
+        if (configData.status === 'rejected') {
+          logError('Failed to load subscription URL', configData.reason, {
+            page: 'setup',
+            action: 'loadSubscriptionUrl'
+          });
+          analytics.event('setup_error', {
+            step: 1,
+            action: 'loadSubscriptionUrl',
+            error: configData.reason instanceof Error ? configData.reason.message : String(configData.reason)
+          });
+        }
       }
-    };
-    loadSubscriptionUrl();
-  }, []);
 
-  // Проверка статуса подписки перед началом настройки
-  useEffect(() => {
-    const checkSubscription = async () => {
-      try {
-        const status = await api.getUserStatus();
-        setSubscriptionStatus(status.ok && status.status === 'active' ? 'active' : 'inactive');
-      } catch (error) {
-        logError('Failed to check subscription status', error, {
+      // Обрабатываем статус подписки
+      if (statusData.status === 'fulfilled') {
+        setSubscriptionStatus(statusData.value.ok && statusData.value.status === 'active' ? 'active' : 'inactive');
+      } else {
+        logError('Failed to check subscription status', statusData.reason, {
           page: 'setup',
           action: 'checkSubscription'
         });
         setSubscriptionStatus('inactive');
       }
+
+      setIsLoadingSubscriptionUrl(false);
     };
-    checkSubscription();
+    
+    loadData();
   }, []);
 
   /**

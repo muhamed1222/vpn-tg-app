@@ -1,19 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 
 /**
  * AnimatedBackground - создает эффект живого, вечно движущегося фона.
  * Использует технику гигантского оффсета для имитации бесконечного скролла.
+ * Оптимизирован для производительности с использованием will-change и transform.
  */
-export const AnimatedBackground: React.FC = () => {
+export const AnimatedBackground: React.FC = memo(() => {
     const backgroundSize = 32;
     const speed = 30; // pixels per second
 
     return (
         <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-main-gradient">
-            {/* Движущийся слой с паттерном */}
+            {/* Движущийся слой с паттерном - оптимизирован с will-change */}
             <motion.div
                 initial={{ backgroundPositionY: '0px' }}
                 animate={{ backgroundPositionY: `-${backgroundSize}px` }}
@@ -26,6 +27,7 @@ export const AnimatedBackground: React.FC = () => {
                 style={{
                     backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
                     backgroundSize: `${backgroundSize}px ${backgroundSize}px`,
+                    willChange: 'background-position-y',
                 }}
             />
 
@@ -48,4 +50,6 @@ export const AnimatedBackground: React.FC = () => {
             }} />
         </div>
     );
-};
+});
+
+AnimatedBackground.displayName = 'AnimatedBackground';

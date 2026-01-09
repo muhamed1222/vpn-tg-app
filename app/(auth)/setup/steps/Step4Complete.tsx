@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -10,7 +10,7 @@ import { analytics } from '@/lib/analytics';
 import type { Step4CompleteProps } from '@/types/setup';
 
 
-export const Step4Complete: React.FC<Step4CompleteProps> = ({
+export const Step4Complete: React.FC<Step4CompleteProps> = memo(({
     direction,
     variants,
     onBack,
@@ -111,4 +111,6 @@ export const Step4Complete: React.FC<Step4CompleteProps> = ({
             </div>
         </motion.div>
     );
-};
+});
+
+Step4Complete.displayName = 'Step4Complete';

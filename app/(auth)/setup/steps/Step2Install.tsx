@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { CloudDownload, ChevronLeft, ArrowRight } from 'lucide-react';
 import { triggerHaptic } from '@/lib/telegram';
 import { VPN_APP_NAME } from '@/lib/constants';
 import type { Step2InstallProps } from '@/types/setup';
 
-export const Step2Install: React.FC<Step2InstallProps> = ({
+export const Step2Install: React.FC<Step2InstallProps> = memo(({
     direction,
     variants,
     onBack,
@@ -75,4 +75,6 @@ export const Step2Install: React.FC<Step2InstallProps> = ({
             </div>
         </motion.div>
     );
-};
+});
+
+Step2Install.displayName = 'Step2Install';

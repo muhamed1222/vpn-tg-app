@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, ChevronLeft, CirclePlus, ArrowRight, Copy, Check, AlertTriangle, RefreshCw } from 'lucide-react';
 import { triggerHaptic } from '@/lib/telegram';
@@ -8,7 +8,7 @@ import { logError } from '@/lib/utils/logging';
 import { analytics } from '@/lib/analytics';
 import type { Step3SubscriptionProps } from '@/types/setup';
 
-export const Step3Subscription: React.FC<Step3SubscriptionProps> = ({
+export const Step3Subscription: React.FC<Step3SubscriptionProps> = memo(({
     direction,
     variants,
     onBack,
@@ -252,4 +252,6 @@ export const Step3Subscription: React.FC<Step3SubscriptionProps> = ({
             </div>
         </motion.div>
     );
-};
+});
+
+Step3Subscription.displayName = 'Step3Subscription';

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Plug, ChevronLeft, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
@@ -8,7 +8,7 @@ import { triggerHaptic } from '@/lib/telegram';
 import { analytics } from '@/lib/analytics';
 import type { Step1WelcomeProps } from '@/types/setup';
 
-export const Step1Welcome: React.FC<Step1WelcomeProps> = ({
+export const Step1Welcome: React.FC<Step1WelcomeProps> = memo(({
     direction,
     variants,
     platform,
@@ -87,4 +87,6 @@ export const Step1Welcome: React.FC<Step1WelcomeProps> = ({
             </div>
         </motion.div>
     );
-};
+});
+
+Step1Welcome.displayName = 'Step1Welcome';
