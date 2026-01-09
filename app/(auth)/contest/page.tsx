@@ -5,9 +5,8 @@ import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { triggerHaptic, getTelegramWebApp } from '@/lib/telegram';
 import { logError } from '@/lib/utils/logging';
-import { ContestSummary, ReferralFriend, TicketHistoryEntry } from '@/types/contest';
+import { ContestSummary, ReferralFriend, TicketHistoryEntry } from '@/types/contest-v2';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
-import { 
 
 // Lazy loading для компонентов
 const ContestSummaryCard = lazy(() =>
@@ -37,6 +36,19 @@ export default function ContestPage() {
     setError(null);
 
     try {
+      // TODO: Заменить на реальные API запросы
+      // Временно используем реальные API эндпоинты
+      const [activeContestData, summaryData, friendsData, ticketsData] = await Promise.all([
+        // Получаем активный конкурс
+        fetch('/api/contest/active').then(res => res.ok ? res.json() : { ok: false, contest: null }),
+        // Получаем сводку по рефералам
+        fetch('/api/referral/summary?contest_id=550e8400-e29b-41d4-a716-446655440000').then(res => res.ok ? res.json() : { ok: false, summary: null }),
+        // Получаем список друзей
+        fetch('/api/referral/friends?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=50').then(res => res.ok ? res.json() : { ok: false, friends: [] }),
+        // Получаем историю билетов
+        fetch('/api/referral/tickets?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=20').then(res => res.ok ? res.json() : { ok: false, tickets: [] }),
+      ]);
+
       // Проверяем наличие активного конкурса
       if (!activeContestData.ok || !activeContestData.contest) {
         setError('Нет активного конкурса');
@@ -54,28 +66,6 @@ export default function ContestPage() {
       setSummary(summaryData.summary);
       setFriends(friendsData.friends || []);
       setTickets(ticketsData.tickets || []);
-
-      // Раскомментируйте для реальных API запросов:узки для реалистичности
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Используем моковые данные
-      setSummary(mockContestSummary);
-      setFriends(mockFriends);
-      setTickets(mockTicketsHistory);
-
-      //   setError('Нет активного конкурса');
-      //   setLoading(false);
-      //   return;
-      // }
-      // const contestId = activeContest.contest.id;
-      // const [summaryData, friendsData, ticketsData] = await Promise.all([
-      //   api.getContestSummary(contestId),
-      //   api.getContestFriends(contestId),
-      //   api.getContestTickets(contestId),
-      // ]);
-      // if (summaryData?.ok) setSummary(summaryData.summary);
-      // if (friendsData?.ok) setFriends(friendsData.friends || []);
-      // if (ticketsData?.ok) setTickets(ticketsData.tickets || []);
     } catch (err) {
       logError('Failed to load contest data', err, {
         page: 'contest',
@@ -219,10 +209,17 @@ export default function ContestPage() {
       <div className="mb-6 relative z-10">
         <button
           onClick={handleShare}
-          className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[12px] py-4 px-4 text-white font-semibold text-base shadow-lg"
+          className="w-full bg-gradient-to-r from-[#F55128] to-[#FF6B3D] hover:from-[#d43d1f] hover:to-[#e55a2d] active:scale-[0.98] transition-all duration-200 rounded-[16px] py-5 px-6 text-white font-bold text-lg shadow-xl flex items-center justify-center gap-3 border border-white/20"
         >
-          Пригласить друзей
+          <span className="text-2xl">🎁</span>
+          <span>Пригласить друзей</span>
+          <span className="text-sm font-normal text-white/80">+5 билетов за друга</span>
         </button>
+        <div className="text-center mt-2">
+          <p className="text-white/60 text-xs">
+            Чем больше друзей пригласите, тем выше ваши шансы на победу!
+          </p>
+        </div>
       </div>
 
       {/* Friends List */}
