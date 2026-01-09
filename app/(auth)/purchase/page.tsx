@@ -69,6 +69,18 @@ export default function PurchasePage() {
   
   const { subscription } = useSubscriptionStore();
 
+  // Проверяем, есть ли у пользователя оплаченные платежи
+  const checkHasPaidOrders = async (): Promise<boolean> => {
+    try {
+      const payments = await api.getPaymentsHistory();
+      // Проверяем, есть ли хотя бы один успешный платеж
+      return payments.some(p => p.status === 'success');
+    } catch (error) {
+      // Если не удалось загрузить историю, возвращаем false (показываем все тарифы)
+      return false;
+    }
+  };
+
   // Загружаем тарифы с бэкенда с кэшированием
   useEffect(() => {
     const loadTariffs = async () => {
@@ -105,15 +117,23 @@ export default function PurchasePage() {
           throw new Error('Тарифы не найдены');
         }
         
+        // Проверяем, есть ли у пользователя оплаченные платежи
+        const hasPaidOrders = await checkHasPaidOrders();
+
         // Преобразуем тарифы с бэкенда в формат приложения с валидацией
         const transformedPlans: Plan[] = tariffs
           .filter((tariff) => {
             // Валидация: проверяем наличие обязательных полей
-            return tariff && 
-                   tariff.id && 
-                   typeof tariff.days === 'number' && 
-                   tariff.days > 0 &&
-                   (tariff.price_rub || tariff.price_stars);
+            if (!tariff || !tariff.id || typeof tariff.days !== 'number' || tariff.days <= 0 || !(tariff.price_rub || tariff.price_stars)) {
+              return false;
+            }
+            
+            // Скрываем plan_7, если у пользователя есть оплаченные платежи
+            if (tariff.id === 'plan_7' && hasPaidOrders) {
+              return false;
+            }
+            
+            return true;
           })
           .map((tariff) => {
             // Используем ID с бэкенда напрямую
