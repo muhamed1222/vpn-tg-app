@@ -39,8 +39,10 @@ export const VpnKeyCode: React.FC<VpnKeyCodeProps> = ({
   const handleCopy = async () => {
     if (!value) return;
 
-    try {
-      await navigator.clipboard.writeText(value);
+    const { copyToClipboard } = await import('@/lib/utils/clipboard');
+    const copied = await copyToClipboard(value);
+    
+    if (copied) {
       setCopied(true);
       
       const webApp = getTelegramWebApp();
@@ -55,8 +57,8 @@ export const VpnKeyCode: React.FC<VpnKeyCodeProps> = ({
         setCopied(false);
         setShowTooltip(false);
       }, 2000);
-    } catch (error) {
-      logError('Failed to copy', error, {
+    } else {
+      logError('Failed to copy', new Error('Clipboard API not available'), {
         action: 'copyToClipboard',
         component: 'VpnKeyCode'
       });

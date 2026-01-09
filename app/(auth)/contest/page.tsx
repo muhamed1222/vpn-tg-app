@@ -123,16 +123,16 @@ export default function ContestPage() {
         });
       } else {
         // Fallback: копируем в буфер обмена
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(summary.ref_link);
-            const webApp = getTelegramWebApp();
-            if (webApp) {
-              webApp.showAlert('✅ Реферальная ссылка скопирована');
-            }
+        const { copyToClipboard } = await import('@/lib/utils/clipboard');
+        const copied = await copyToClipboard(summary.ref_link);
+        
+        if (copied) {
+          const webApp = getTelegramWebApp();
+          if (webApp) {
+            webApp.showAlert('✅ Реферальная ссылка скопирована');
           }
-        } catch (err) {
-          logError('Failed to copy referral link', err, {
+        } else {
+          logError('Failed to copy referral link', new Error('Clipboard API not available'), {
             page: 'contest',
             action: 'share',
           });
@@ -168,8 +168,8 @@ export default function ContestPage() {
     return (
       <main className="w-full bg-black text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
         <div className="sticky top-[calc(100px+env(safe-area-inset-top))] z-50 flex items-center justify-between w-fit mb-4">
-          <Link href="/" className="p-2 bg-white/10 rounded-xl border border-white/10 active:scale-95 transition-all hover:bg-white/15">
-            <ChevronLeftIcon className="w-6 h-6 text-white" />
+          <Link href="/" className="p-2 bg-white/10 rounded-xl border border-white/10 active:scale-95 transition-all hover:bg-white/15" aria-label="Назад на главную">
+            <ChevronLeftIcon className="w-6 h-6 text-white" aria-hidden="true" />
           </Link>
         </div>
         <div className="flex items-center justify-center flex-1">
@@ -192,8 +192,9 @@ export default function ContestPage() {
           href="/" 
           onClick={() => triggerHaptic('light')}
           className="p-2 bg-white/10 rounded-xl border border-white/10 active:scale-95 transition-all hover:bg-white/15"
+          aria-label="Назад на главную"
         >
-          <ChevronLeftIcon className="w-6 h-6 text-white" />
+          <ChevronLeftIcon className="w-6 h-6 text-white" aria-hidden="true" />
         </Link>
       </div>
 

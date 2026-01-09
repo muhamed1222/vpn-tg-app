@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { TicketHistoryEntry } from '@/types/contest';
 import { PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
+import { formatDateWithTime } from '@/lib/utils/date';
 
 interface TicketsHistoryProps {
   tickets: TicketHistoryEntry[];
@@ -23,33 +24,6 @@ export const TicketsHistory: React.FC<TicketsHistoryProps> = ({ tickets, onShowA
   }, [tickets]);
 
   const hasMore = tickets.length > 5;
-
-  const formatDate = useMemo(() => {
-    return (dateString: string) => {
-      const date = new Date(dateString);
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const ticketDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const diffTime = today.getTime() - ticketDate.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      const day = date.getDate();
-      const month = date.toLocaleDateString('ru-RU', { month: 'short' });
-      const year = date.getFullYear();
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-
-      if (diffDays === 0) {
-        return `Сегодня, ${hours}:${minutes}`;
-      } else if (diffDays === 1) {
-        return `Вчера, ${hours}:${minutes}`;
-      } else if (diffDays < 7) {
-        return `${day} ${month}, ${hours}:${minutes}`;
-      } else {
-        return `${day} ${month} ${year}, ${hours}:${minutes}`;
-      }
-    };
-  }, []);
 
   if (sortedTickets.length === 0) {
     return (
@@ -79,11 +53,11 @@ export const TicketsHistory: React.FC<TicketsHistoryProps> = ({ tickets, onShowA
                 ticket.delta > 0 
                   ? 'bg-green-500/20' 
                   : 'bg-red-500/20'
-              }`}>
+              }`} aria-hidden="true">
                 {ticket.delta > 0 ? (
-                  <PlusIcon className="w-5 h-5 text-green-500" />
+                  <PlusIcon className="w-5 h-5 text-green-500" aria-hidden="true" />
                 ) : (
-                  <MinusIcon className="w-5 h-5 text-red-500" />
+                  <MinusIcon className="w-5 h-5 text-red-500" aria-hidden="true" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -91,7 +65,7 @@ export const TicketsHistory: React.FC<TicketsHistoryProps> = ({ tickets, onShowA
                   {ticket.label}
                 </div>
                 <div className="text-white/40 text-xs mt-1">
-                  {formatDate(ticket.created_at)}
+                  {formatDateWithTime(ticket.created_at)}
                 </div>
               </div>
             </div>

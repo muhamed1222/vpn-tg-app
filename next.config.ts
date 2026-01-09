@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     } : false,
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion'],
+    optimizePackageImports: ['framer-motion'],
   },
   // Оптимизация производительности
   // swcMinify удален - это опция по умолчанию в Next.js 16+

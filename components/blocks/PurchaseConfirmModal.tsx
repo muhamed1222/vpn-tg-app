@@ -151,7 +151,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
       } else {
         throw new Error('Не удалось получить ссылку на оплату');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Payment processing error', error, {
         page: 'purchase',
         action: 'createOrder',
@@ -159,7 +159,9 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
         price
       });
       const webApp = getTelegramWebApp();
-      const message = error.message || 'Произошла ошибка при создании платежа. Попробуйте позже.';
+      const message = error instanceof Error 
+        ? error.message 
+        : 'Произошла ошибка при создании платежа. Попробуйте позже.';
       
       if (webApp) {
         webApp.showAlert(message);

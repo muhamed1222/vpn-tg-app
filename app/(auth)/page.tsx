@@ -14,6 +14,7 @@ import { SubscriptionCardSkeleton, SkeletonLoader } from '@/components/ui/Skelet
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { logError } from '@/lib/utils/logging';
 import { getCache, setCache } from '@/lib/utils/cache';
+import { formatExpirationDate } from '@/lib/utils/date';
 
 // Lazy loading для модалок - загружаются только когда нужны
 const SupportModal = lazy(() =>
@@ -21,29 +22,6 @@ const SupportModal = lazy(() =>
     default: module.SupportModal
   }))
 );
-
-/**
- * Форматирует дату в формате YYYY-MM-DD в читаемый формат на русском языке
- * Пример: "2025-12-05" -> "5 декабря 2025"
- * 
- * @param dateString - Дата в формате ISO (YYYY-MM-DD)
- * @returns Отформатированная строка даты на русском языке
- */
-const formatExpirationDate = (dateString?: string): string => {
-  if (!dateString) return '—';
-
-  const date = new Date(dateString);
-  const months = [
-    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-  ];
-
-  const day = date.getDate();
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-
-  return `${day} ${month} ${year}`;
-};
 
 export default function Home() {
   const [isSupportOpen, setIsSupportOpen] = useState(false);

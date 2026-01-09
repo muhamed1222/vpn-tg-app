@@ -6,6 +6,7 @@ import { BottomSheet } from '../ui/BottomSheet';
 import { api } from '@/lib/api';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { logError } from '@/lib/utils/logging';
+import { formatTimestamp } from '@/lib/utils/date';
 
 interface Transaction {
   id: string;
@@ -23,25 +24,16 @@ interface TransactionsModalProps {
   onClose: () => void;
 }
 
-const formatDate = (timestamp: number) => {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'success':
     case 'paid':
-      return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      return <CheckCircle2 className="w-4 h-4 text-green-500" aria-hidden="true" />;
     case 'fail':
-      return <XCircle className="w-4 h-4 text-red-500" />;
+      return <XCircle className="w-4 h-4 text-red-500" aria-hidden="true" />;
     case 'pending':
     default:
-      return <Clock className="w-4 h-4 text-yellow-500" />;
+      return <Clock className="w-4 h-4 text-yellow-500" aria-hidden="true" />;
   }
 };
 
@@ -100,7 +92,7 @@ export const TransactionsModal: React.FC<TransactionsModalProps> = ({ isOpen, on
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-            <XCircle className="w-12 h-12 text-red-500/20 mb-4" />
+            <XCircle className="w-12 h-12 text-red-500/20 mb-4" aria-hidden="true" />
             <p className="text-white text-lg font-medium">{error}</p>
             <button 
               onClick={() => window.location.reload()}
@@ -115,7 +107,7 @@ export const TransactionsModal: React.FC<TransactionsModalProps> = ({ isOpen, on
             style={{ '--index': 1 } as React.CSSProperties}
           >
             <div className="bg-white/5 p-6 rounded-[28px] mb-6 border border-white/5 shadow-inner">
-              <FolderOpen className="w-12 h-12 text-white/20" />
+              <FolderOpen className="w-12 h-12 text-white/20" aria-hidden="true" />
             </div>
             
             <div className="space-y-2">
@@ -139,8 +131,8 @@ export const TransactionsModal: React.FC<TransactionsModalProps> = ({ isOpen, on
                       {tx.planName || 'Подписка VPN'}
                     </span>
                     <div className="flex items-center gap-2 text-white/40 text-sm">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {formatDate(tx.date)}
+                      <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
+                      {formatTimestamp(tx.date)}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
@@ -161,7 +153,7 @@ export const TransactionsModal: React.FC<TransactionsModalProps> = ({ isOpen, on
                 
                 <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-white/20 uppercase tracking-widest">
                   <div className="flex items-center gap-1">
-                    <CreditCard className="w-3 h-3" />
+                    <CreditCard className="w-3 h-3" aria-hidden="true" />
                     <span>ID: {tx.orderId || tx.id}</span>
                   </div>
                 </div>

@@ -41,14 +41,14 @@ export const FriendsList: React.FC<FriendsListProps> = ({ friends }) => {
   const getStatusIcon = (status: ReferralFriend['status']) => {
     switch (status) {
       case 'qualified':
-        return <CheckCircleIcon className="w-6 h-6 text-green-500" />;
+        return <CheckCircleIcon className="w-6 h-6 text-green-500" aria-hidden="true" />;
       case 'bound':
-        return <ClockIcon className="w-6 h-6 text-yellow-500" />;
+        return <ClockIcon className="w-6 h-6 text-yellow-500" aria-hidden="true" />;
       case 'not_qualified':
       case 'blocked':
-        return <XCircleIcon className="w-6 h-6 text-red-500" />;
+        return <XCircleIcon className="w-6 h-6 text-red-500" aria-hidden="true" />;
       default:
-        return <UserIcon className="w-6 h-6 text-white/40" />;
+        return <UserIcon className="w-6 h-6 text-white/40" aria-hidden="true" />;
     }
   };
 
@@ -119,7 +119,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({ friends }) => {
               className="bg-white/5 rounded-[10px] p-3 border border-white/5 flex items-center justify-between"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0" aria-hidden="true">
                   {getStatusIcon(status)}
                 </div>
                 <div className="flex-1 min-w-0">

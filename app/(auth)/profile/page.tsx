@@ -18,6 +18,7 @@ import { VpnConnectionCard } from '@/components/blocks/VpnConnectionCard';
 import { getTelegramWebApp } from '@/lib/telegram';
 import { config } from '@/lib/config';
 import { logError } from '@/lib/utils/logging';
+import { copyToClipboard } from '@/lib/utils/clipboard';
 
 // Lazy loading для модалок - загружаются только когда открыты
 const TransactionsModal = lazy(() => 
@@ -55,8 +56,9 @@ export default function ProfilePage() {
   const handleCopyId = React.useCallback(async () => {
     const idToCopy = user?.id?.toString() || '12345678';
     
-    try {
-      await navigator.clipboard.writeText(idToCopy);
+    const copied = await copyToClipboard(idToCopy);
+    
+    if (copied) {
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
 
@@ -64,8 +66,8 @@ export default function ProfilePage() {
       if (webApp) {
         webApp.showAlert(`ID ${idToCopy} скопирован в буфер обмена`);
       }
-    } catch (error) {
-      logError('Failed to copy ID to clipboard', error, {
+    } else {
+      logError('Failed to copy ID to clipboard', new Error('Clipboard API not available'), {
         page: 'profile',
         action: 'copyId',
         userId: user?.id

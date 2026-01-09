@@ -3,6 +3,7 @@
 import React from 'react';
 import { Contest } from '@/types/contest';
 import { BottomSheet } from '../ui/BottomSheet';
+import { formatDateFull } from '@/lib/utils/date';
 
 interface ContestRulesModalProps {
   isOpen: boolean;
@@ -18,16 +19,8 @@ export const ContestRulesModal: React.FC<ContestRulesModalProps> = ({
   onClose,
   contest,
 }) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.toLocaleDateString('ru-RU', { month: 'long' });
-    const year = date.getFullYear();
-    return `${day} ${month} ${year}`;
-  };
-
-  const startDate = formatDate(contest.starts_at);
-  const endDate = formatDate(contest.ends_at);
+  const startDate = formatDateFull(contest.starts_at);
+  const endDate = formatDateFull(contest.ends_at);
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Правила конкурса">

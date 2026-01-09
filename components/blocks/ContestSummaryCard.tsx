@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ContestSummary } from '@/types/contest';
+import { formatDateFull } from '@/lib/utils/date';
 
 interface ContestProgress {
   daysRemaining: number;
@@ -22,17 +23,7 @@ export const ContestSummaryCard: React.FC<ContestSummaryCardProps> = ({
   summary, 
   progress
 }) => {
-  const formatDate = useMemo(() => {
-    return (dateString: string) => {
-      const date = new Date(dateString);
-      const day = date.getDate();
-      const month = date.toLocaleDateString('ru-RU', { month: 'long' });
-      const year = date.getFullYear();
-      return `${day} ${month} ${year}`;
-    };
-  }, []);
-
-  const endDate = formatDate(summary.contest.ends_at);
+  const endDate = formatDateFull(summary.contest.ends_at);
 
   return (
     <div className="bg-gradient-to-r from-[#F55128] to-[#FF6B3D] rounded-[16px] p-6 mb-6 border border-white/10 backdrop-blur-[12px] relative z-10 shadow-2xl">

@@ -21,9 +21,13 @@ export const AnimatedBackground: React.FC = memo(() => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         
         // Проверяем производительность устройства
+        interface NavigatorWithMemory extends Navigator {
+            deviceMemory?: number;
+        }
+        const nav = navigator as NavigatorWithMemory;
         const isLowEndDevice = 
             navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4 ||
-            (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
+            nav.deviceMemory && nav.deviceMemory < 4;
         
         if (prefersReducedMotion || isLowEndDevice) {
             setShouldAnimate(false);

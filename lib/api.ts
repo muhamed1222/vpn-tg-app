@@ -73,7 +73,7 @@ export const apiFetch = async <T = unknown>(
     const isJson = contentType.includes('application/json');
 
     // Парсим ответ только если это JSON, иначе пытаемся получить текст
-    let data: any = {};
+    let data: unknown = {};
     let errorMessage = '';
 
     if (isJson) {
@@ -105,8 +105,9 @@ export const apiFetch = async <T = unknown>(
 
     if (!response.ok) {
       // Формируем понятное сообщение об ошибке
-      if (!errorMessage) {
-        errorMessage = data.error || data.message;
+      if (!errorMessage && typeof data === 'object' && data !== null) {
+        const errorData = data as { error?: string; message?: string };
+        errorMessage = errorData.error || errorData.message || '';
       }
 
       if (!errorMessage) {

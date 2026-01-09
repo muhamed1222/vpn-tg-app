@@ -88,11 +88,14 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
     При клике ссылка копируется в буфер обмена, иконка меняется на галочку,
     и показывается системное уведомление Telegram.
   */
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(referralLink);
+  const handleCopyLink = async () => {
+    const { copyToClipboard } = await import('@/lib/utils/clipboard');
+    const copied = await copyToClipboard(referralLink);
     
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    if (copied) {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
 
     const webApp = getTelegramWebApp();
     if (webApp) {
