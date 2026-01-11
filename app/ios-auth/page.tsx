@@ -91,23 +91,62 @@ export default function IOSAuthPage() {
 
     const tg = getTelegramWebApp();
 
-    // Метод 1: Используем openLink
+    // Telegram Mini App может не поддерживать открытие custom URL schemes напрямую
+    // Используем несколько методов
+
+    // Метод 1: Прямое изменение location (может работать в некоторых случаях)
+    try {
+      console.log('[iOS Auth] Trying window.location.href');
+      window.location.href = deepLink;
+      
+      // Если через 500ms мы все еще на странице, пробуем другие методы
+      setTimeout(() => {
+        console.log('[iOS Auth] Location change didn\'t work, trying alternatives');
+      }, 500);
+    } catch (e) {
+      console.error('[iOS Auth] window.location.href failed:', e);
+    }
+
+    // Метод 2: Создаем скрытый iframe (для некоторых браузеров)
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = deepLink;
+      document.body.appendChild(iframe);
+      
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    } catch (e) {
+      console.error('[iOS Auth] iframe method failed:', e);
+    }
+
+    // Метод 3: Создаем и кликаем по ссылке
+    try {
+      const link = document.createElement('a');
+      link.href = deepLink;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (link.parentNode) {
+          document.body.removeChild(link);
+        }
+      }, 100);
+    } catch (e) {
+      console.error('[iOS Auth] link.click() failed:', e);
+    }
+
+    // Метод 4: Пробуем tg.openLink (может не работать с custom schemes)
     if (tg && typeof tg.openLink === 'function') {
       try {
-        console.log('[iOS Auth] Using tg.openLink()');
+        console.log('[iOS Auth] Trying tg.openLink()');
         tg.openLink(deepLink);
-        return;
       } catch (e) {
         console.error('[iOS Auth] tg.openLink() failed:', e);
       }
-    }
-
-    // Метод 2: Используем window.location
-    try {
-      console.log('[iOS Auth] Using window.location.href');
-      window.location.href = deepLink;
-    } catch (e) {
-      console.error('[iOS Auth] window.location.href failed:', e);
     }
   };
 
@@ -192,11 +231,15 @@ export default function IOSAuthPage() {
       <div style={{ fontSize: '24px', marginBottom: '16px', fontWeight: '600' }}>
         Авторизация в Outlivion
       </div>
-      <div style={{ fontSize: '16px', marginBottom: '30px', opacity: 0.8 }}>
-        Нажмите кнопку ниже, чтобы вернуться в приложение
+      <div style={{ fontSize: '16px', marginBottom: '10px', opacity: 0.8, textAlign: 'center' }}>
+        К сожалению, Telegram Mini App не может открыть приложение напрямую.
+      </div>
+      <div style={{ fontSize: '14px', marginBottom: '30px', opacity: 0.7, textAlign: 'center' }}>
+        Скопируйте ссылку ниже и откройте её в Safari:
       </div>
       <button
         onClick={handleButtonClick}
+        onTouchStart={handleButtonClick}
         style={{
           background: '#0b99ff',
           color: 'white',
@@ -207,24 +250,51 @@ export default function IOSAuthPage() {
           cursor: 'pointer',
           fontWeight: '500',
           width: '100%',
-          maxWidth: '356px'
+          maxWidth: '356px',
+          WebkitTapHighlightColor: 'transparent'
         }}
       >
         Открыть в приложении
       </button>
-      <div style={{ fontSize: '12px', marginTop: '20px', opacity: 0.6 }}>
-        Если кнопка не работает, скопируйте эту ссылку и откройте в Safari
-      </div>
       {initData && (
-        <div style={{
-          fontSize: '10px',
-          marginTop: '10px',
-          opacity: 0.4,
-          wordBreak: 'break-all',
-          maxWidth: '100%'
-        }}>
-          {`outlivion://auth?token=${encodeURIComponent(initData).substring(0, 50)}...`}
-        </div>
+        <>
+          <div style={{ fontSize: '12px', marginTop: '30px', opacity: 0.7, marginBottom: '10px' }}>
+            Или скопируйте ссылку ниже:
+          </div>
+          <div
+            onClick={() => {
+              const deepLink = `outlivion://auth?token=${encodeURIComponent(initData)}`;
+              navigator.clipboard.writeText(deepLink).then(() => {
+                alert('Ссылка скопирована! Откройте её в Safari.');
+              }).catch(() => {
+                // Fallback для старых браузеров
+                const textarea = document.createElement('textarea');
+                textarea.value = deepLink;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Ссылка скопирована! Откройте её в Safari.');
+              });
+            }}
+            style={{
+              fontSize: '11px',
+              marginTop: '10px',
+              opacity: 0.6,
+              wordBreak: 'break-all',
+              maxWidth: '100%',
+              padding: '10px',
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            {`outlivion://auth?token=${encodeURIComponent(initData).substring(0, 80)}...`}
+            <br />
+            <span style={{ fontSize: '10px', opacity: 0.8 }}>(нажмите, чтобы скопировать)</span>
+          </div>
+        </>
       )}
     </div>
   );
