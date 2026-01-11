@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 /**
@@ -10,9 +10,10 @@ import { useSearchParams } from 'next/navigation';
 export default function IOSAuthRedirectPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!token) {
+    if (!token || redirectedRef.current) {
       return;
     }
 
@@ -20,16 +21,31 @@ export default function IOSAuthRedirectPage() {
     const deepLink = `outlivion://auth?token=${encodeURIComponent(token)}`;
     
     console.log('[iOS Auth Redirect] Redirecting to deep link:', deepLink.substring(0, 100) + '...');
+    redirectedRef.current = true;
     
-    // Пытаемся открыть deep link
+    // Метод 1: Прямой редирект через window.location
     // В Safari это откроет приложение, если оно установлено
-    window.location.href = deepLink;
-    
-    // Fallback: если не сработало, показываем инструкции
-    setTimeout(() => {
-      // Если через 1 секунду мы все еще на странице, значит редирект не сработал
-      // (Но на самом деле мы уже ушли, так что этот код не выполнится)
-    }, 1000);
+    try {
+      window.location.href = deepLink;
+    } catch (e) {
+      console.error('[iOS Auth Redirect] window.location.href failed:', e);
+      
+      // Метод 2: Fallback через создание ссылки и клик
+      try {
+        const link = document.createElement('a');
+        link.href = deepLink;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (link.parentNode) {
+            document.body.removeChild(link);
+          }
+        }, 100);
+      } catch (e2) {
+        console.error('[iOS Auth Redirect] link.click() failed:', e2);
+      }
+    }
   }, [token]);
 
   if (!token) {
@@ -66,7 +82,24 @@ export default function IOSAuthRedirectPage() {
       textAlign: 'center'
     }}>
       <div style={{ fontSize: '18px', marginBottom: '20px' }}>Перенаправление...</div>
-      <div style={{ fontSize: '14px', opacity: 0.7 }}>Открытие приложения Outlivion</div>
+      <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '20px' }}>Открытие приложения Outlivion</div>
+      {token && (
+        <div
+          onClick={() => {
+            const deepLink = `outlivion://auth?token=${encodeURIComponent(token)}`;
+            window.location.href = deepLink;
+          }}
+          style={{
+            fontSize: '12px',
+            opacity: 0.6,
+            textDecoration: 'underline',
+            cursor: 'pointer',
+            marginTop: '20px'
+          }}
+        >
+          Если приложение не открылось, нажмите здесь
+        </div>
+      )}
     </div>
   );
 }
