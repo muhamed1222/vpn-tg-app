@@ -58,6 +58,20 @@ export async function GET(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
+      // Не логируем ожидаемые ошибки (404, 401, 400)
+      const isExpectedError = backendResponse.status === 404 || 
+                              backendResponse.status === 401 || 
+                              backendResponse.status === 400;
+      
+      if (!isExpectedError) {
+        logError('Referral friends API error', new Error(`Backend returned ${backendResponse.status}`), {
+          page: 'api',
+          action: 'getReferralFriends',
+          endpoint: '/api/referral/friends',
+          status: backendResponse.status
+        });
+      }
+      
       return NextResponse.json(
         { ok: false, friends: [], error: errorData.error || 'Failed to fetch friends' },
         { status: backendResponse.status }
@@ -70,11 +84,21 @@ export async function GET(request: NextRequest) {
       friends: data.friends || [],
     });
   } catch (error) {
-    logError('Referral friends API error', error, {
-      page: 'api',
-      action: 'getReferralFriends',
-      endpoint: '/api/referral/friends'
-    });
+    // Логируем только неожиданные ошибки (не связанные с отсутствием эндпоинтов)
+    const isExpectedError = error instanceof Error && (
+      error.message.includes('404') ||
+      error.message.includes('401') ||
+      error.message.includes('fetch failed')
+    );
+    
+    if (!isExpectedError) {
+      logError('Referral friends API error', error, {
+        page: 'api',
+        action: 'getReferralFriends',
+        endpoint: '/api/referral/friends'
+      });
+    }
+    
     return NextResponse.json(
       { ok: false, friends: [], error: 'Internal Server Error' },
       { status: 500 }

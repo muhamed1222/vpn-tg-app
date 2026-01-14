@@ -326,6 +326,17 @@ export const api = {
     body: JSON.stringify({ planId, paymentMethod })
   }),
 
+  // Проверка статуса оплаты и активация подписки
+  checkPaymentSuccess: (orderId: string) => apiFetch<{
+    status: 'completed' | 'pending';
+    vless_key?: string;
+    expires_at?: number;
+    message?: string;
+  }>('payment/success', {
+    method: 'POST',
+    body: JSON.stringify({ order_id: orderId })
+  }),
+
   // Автопродление (с кэшированием на 1 минуту)
   getAutorenewal: async () => {
     const { cachedFetch } = await import('@/lib/utils/apiCache');

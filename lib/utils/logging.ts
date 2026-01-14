@@ -22,25 +22,69 @@ export function logError(
   error?: Error | unknown,
   context?: LogContext
 ): void {
-  const errorMessage = error instanceof Error ? error.message : String(error || message);
-  const errorStack = error instanceof Error ? error.stack : undefined;
+  // Безопасное извлечение сообщения об ошибке
+  let errorMessage: string;
+  let errorStack: string | undefined;
   
-  const logEntry = {
-    level: 'error' as const,
-    message,
-    error: errorMessage,
-    stack: errorStack,
-    timestamp: new Date().toISOString(),
-    ...context,
-  };
-
+  // Проверка на пустой объект
+  const isEmptyObject = error && typeof error === 'object' && Object.keys(error).length === 0;
+  
+  if (isEmptyObject) {
+    // Если передан пустой объект, используем только сообщение
+    errorMessage = message;
+  } else if (error instanceof Error) {
+    errorMessage = error.message || message;
+    errorStack = error.stack;
+  } else if (error && typeof error === 'object') {
+    // Обработка Response объектов и других объектов
+    if ('status' in error && 'statusText' in error) {
+      // Это Response объект
+      errorMessage = `HTTP ${(error as { status: number }).status}: ${(error as { statusText: string }).statusText || message}`;
+    } else if ('message' in error && typeof (error as { message: unknown }).message === 'string') {
+      errorMessage = (error as { message: string }).message;
+    } else {
+      // Пытаемся сериализовать объект безопасно
+      try {
+        const serialized = JSON.stringify(error);
+        // Если объект пустой после сериализации, используем сообщение
+        errorMessage = serialized === '{}' ? message : (serialized || message);
+      } catch {
+        errorMessage = message;
+      }
+    }
+  } else if (error !== null && error !== undefined) {
+    errorMessage = String(error);
+  } else {
+    errorMessage = message;
+  }
+  
   // В development режиме выводим в консоль для отладки
+  // Используем только строки, чтобы избежать проблем с сериализацией объектов
   if (process.env.NODE_ENV === 'development') {
-    console.error('[Error]', logEntry);
+    try {
+      const contextStr = context && typeof context === 'object' && Object.keys(context).length > 0
+        ? JSON.stringify(context)
+        : '';
+      const stackStr = errorStack ? `\nStack: ${errorStack}` : '';
+      
+      // Логируем как строку, чтобы избежать проблем с Next.js
+      const logMessage = `[Error] ${message}\nError: ${errorMessage}${stackStr}${contextStr ? `\nContext: ${contextStr}` : ''}`;
+      console.error(logMessage);
+    } catch (e) {
+      // Fallback если что-то пошло не так
+      console.error(`[Error] ${message}: ${errorMessage}`);
+    }
   }
 
   // Отправляем в аналитику для отслеживания
-  analytics.error(errorMessage, context?.page || context?.action || 'unknown');
+  try {
+    analytics.error(errorMessage, context?.page || context?.action || 'unknown');
+  } catch (e) {
+    // Игнорируем ошибки аналитики, чтобы не ломать приложение
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Analytics] Failed to track error:', e);
+    }
+  }
 
   // В production можно отправлять в сервис логирования (Sentry, LogRocket и т.д.)
   // if (process.env.NODE_ENV === 'production') {

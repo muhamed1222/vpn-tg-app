@@ -42,6 +42,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
   
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pollAttemptsRef = useRef(0);
@@ -67,12 +68,41 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
       pollAttemptsRef.current += 1;
       
       try {
+        // Сначала пробуем проверить статус оплаты через API
+        if (orderId) {
+          try {
+            const paymentResult = await api.checkPaymentSuccess(orderId);
+            
+            if (paymentResult.status === 'completed') {
+              // Оплата прошла и подписка активирована
+              setIsPaid(true);
+              stopPolling();
+              
+              // Обновляем данные пользователя
+              await login(true);
+              
+              // Через 2 секунды закрываем все и уходим на главную
+              setTimeout(() => {
+                setIsWaitingOpen(false);
+                onClose();
+                router.push('/');
+              }, 2500);
+              return;
+            }
+          } catch (e) {
+            // Если не удалось проверить через API, продолжаем polling через login
+            logError('Payment check error', e, {
+              page: 'purchase',
+              action: 'checkPaymentSuccess',
+              orderId,
+              pollAttempt: pollAttemptsRef.current
+            });
+          }
+        }
+        
+        // Fallback: проверяем через login (старый способ)
         const result = await login(true); // Тихий логин для проверки статуса
         if (result.success) {
-          // Если мы здесь и подписка стала активной (или изменилась дата), значит оплата прошла
-          // Это упрощенная логика, в идеале нужно проверять конкретный заказ
-          // Но для Mini App этого обычно достаточно
-          
           // Проверяем статус через стор (login уже обновил его)
           const { useSubscriptionStore } = await import('@/store/subscription.store');
           const sub = useSubscriptionStore.getState().subscription;
@@ -139,6 +169,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
       
       if (response && response.paymentUrl) {
         setPaymentUrl(response.paymentUrl);
+        setOrderId(response.orderId); // Сохраняем orderId для проверки оплаты
         setIsWaitingOpen(true);
         
         // 2. Начинаем поллинг статуса в фоне

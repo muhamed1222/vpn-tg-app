@@ -40,13 +40,21 @@ export default function ContestPage() {
       // Временно используем реальные API эндпоинты
       const [activeContestData, summaryData, friendsData, ticketsData] = await Promise.all([
         // Получаем активный конкурс
-        fetch('/api/contest/active').then(res => res.ok ? res.json() : { ok: false, contest: null }),
+        fetch('/api/contest/active')
+          .then(res => res.ok ? res.json() : { ok: false, contest: null })
+          .catch(() => ({ ok: false, contest: null })),
         // Получаем сводку по рефералам
-        fetch('/api/referral/summary?contest_id=550e8400-e29b-41d4-a716-446655440000').then(res => res.ok ? res.json() : { ok: false, summary: null }),
+        fetch('/api/referral/summary?contest_id=550e8400-e29b-41d4-a716-446655440000')
+          .then(res => res.ok ? res.json() : { ok: false, summary: null })
+          .catch(() => ({ ok: false, summary: null })),
         // Получаем список друзей
-        fetch('/api/referral/friends?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=50').then(res => res.ok ? res.json() : { ok: false, friends: [] }),
+        fetch('/api/referral/friends?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=50')
+          .then(res => res.ok ? res.json() : { ok: false, friends: [] })
+          .catch(() => ({ ok: false, friends: [] })),
         // Получаем историю билетов
-        fetch('/api/referral/tickets?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=20').then(res => res.ok ? res.json() : { ok: false, tickets: [] }),
+        fetch('/api/referral/tickets?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=20')
+          .then(res => res.ok ? res.json() : { ok: false, tickets: [] })
+          .catch(() => ({ ok: false, tickets: [] })),
       ]);
 
       // Проверяем наличие активного конкурса
@@ -67,10 +75,20 @@ export default function ContestPage() {
       setFriends(friendsData.friends || []);
       setTickets(ticketsData.tickets || []);
     } catch (err) {
-      logError('Failed to load contest data', err, {
-        page: 'contest',
-        action: 'loadContestData',
-      });
+      // Логируем только неожиданные ошибки (не связанные с отсутствием эндпоинтов)
+      const isExpectedError = err instanceof Error && (
+        err.message.includes('404') ||
+        err.message.includes('401') ||
+        err.message.includes('Missing Telegram initData') ||
+        err.message.includes('Failed to fetch')
+      );
+      
+      if (!isExpectedError) {
+        logError('Failed to load contest data', err, {
+          page: 'contest',
+          action: 'loadContestData',
+        });
+      }
       setError('Не удалось загрузить данные конкурса');
     } finally {
       setLoading(false);

@@ -57,6 +57,20 @@ export async function GET(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
+      // Не логируем ожидаемые ошибки (404, 401, 400)
+      const isExpectedError = backendResponse.status === 404 || 
+                              backendResponse.status === 401 || 
+                              backendResponse.status === 400;
+      
+      if (!isExpectedError) {
+        logError('Referral tickets API error', new Error(`Backend returned ${backendResponse.status}`), {
+          page: 'api',
+          action: 'getReferralTickets',
+          endpoint: '/api/referral/tickets',
+          status: backendResponse.status
+        });
+      }
+      
       return NextResponse.json(
         { ok: false, tickets: [], error: errorData.error || 'Failed to fetch tickets' },
         { status: backendResponse.status }
@@ -69,11 +83,21 @@ export async function GET(request: NextRequest) {
       tickets: data.tickets || [],
     });
   } catch (error) {
-    logError('Referral tickets API error', error, {
-      page: 'api',
-      action: 'getReferralTickets',
-      endpoint: '/api/referral/tickets'
-    });
+    // Логируем только неожиданные ошибки (не связанные с отсутствием эндпоинтов)
+    const isExpectedError = error instanceof Error && (
+      error.message.includes('404') ||
+      error.message.includes('401') ||
+      error.message.includes('fetch failed')
+    );
+    
+    if (!isExpectedError) {
+      logError('Referral tickets API error', error, {
+        page: 'api',
+        action: 'getReferralTickets',
+        endpoint: '/api/referral/tickets'
+      });
+    }
+    
     return NextResponse.json(
       { ok: false, tickets: [], error: 'Internal Server Error' },
       { status: 500 }

@@ -15,6 +15,7 @@ import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { logError } from '@/lib/utils/logging';
 import { getCache, setCache } from '@/lib/utils/cache';
 import { formatExpirationDate } from '@/lib/utils/date';
+import { ApiException } from '@/lib/api';
 
 // Lazy loading для модалок - загружаются только когда нужны
 const SupportModal = lazy(() =>
@@ -84,15 +85,23 @@ export default function Home() {
         
         if (cancelled) return;
         
-        if (tariffs.length > 0) {
+        if (tariffs && tariffs.length > 0) {
           // Находим минимальную цену среди всех тарифов в рублях (исключая plan_7)
           const validTariffs = tariffs.filter(t => t.id !== 'plan_7');
           if (validTariffs.length > 0) {
-            const min = Math.min(...validTariffs.map(t => t.price_rub || t.price_stars));
-            if (!cancelled) {
-              setMinPrice(min);
-              // Сохраняем в кэш
-              setCache(CACHE_KEY, min, CACHE_TTL);
+            const prices = validTariffs.map(t => t.price_rub || t.price_stars).filter(p => p != null && p > 0);
+            if (prices.length > 0) {
+              const min = Math.min(...prices);
+              if (!cancelled) {
+                setMinPrice(min);
+                // Сохраняем в кэш
+                setCache(CACHE_KEY, min, CACHE_TTL);
+              }
+            } else {
+              // Если нет валидных цен, используем дефолт 99
+              if (!cancelled) {
+                setMinPrice(99);
+              }
             }
           } else {
             // Если нет валидных тарифов, используем дефолт 99
@@ -100,17 +109,55 @@ export default function Home() {
               setMinPrice(99);
             }
           }
+        } else {
+          // Если тарифы не загрузились, используем дефолт
+          if (!cancelled) {
+            setMinPrice(99);
+          }
         }
       } catch (error) {
-        // Логируем ошибку для мониторинга
+        // Логируем ошибку только если это не отмена и не ожидаемая сетевая ошибка
         if (!cancelled) {
-          logError('Failed to load tariffs for min price', error, {
-            page: 'home',
-            action: 'loadMinPrice'
-          });
+          // Проверяем, является ли это ожидаемой сетевой ошибкой
+          const isNetworkError = (error instanceof ApiException && 
+            (error.message.includes('Проблема с подключением') || 
+             error.message.includes('Request timeout'))) ||
+            (error instanceof Error && 
+              (error.message.includes('Проблема с подключением') || 
+               error.message.includes('Request timeout') ||
+               error.message.includes('Failed to fetch') ||
+               error.name === 'NetworkError'));
+          
+          // Не логируем ожидаемые сетевые ошибки, так как они обрабатываются gracefully
+          if (!isNetworkError) {
+            // Проверяем, не является ли ошибка пустым объектом
+            const isEmptyObject = error && typeof error === 'object' && Object.keys(error).length === 0;
+            
+            // Создаем нормализованную ошибку для логирования
+            let normalizedError: Error;
+            if (isEmptyObject) {
+              // Если это пустой объект, создаем простую ошибку с сообщением
+              normalizedError = new Error('Failed to load tariffs (empty error object)');
+            } else if (error instanceof Error) {
+              normalizedError = error;
+            } else if (error instanceof Response) {
+              normalizedError = new Error(`HTTP ${error.status}: ${error.statusText || 'Failed to fetch'}`);
+            } else if (error && typeof error === 'object' && 'message' in error) {
+              normalizedError = new Error(String((error as { message: unknown }).message || 'Unknown error'));
+            } else {
+              normalizedError = new Error(String(error || 'Unknown error'));
+            }
+            
+            logError('Failed to load tariffs for min price', normalizedError, {
+              page: 'home',
+              action: 'loadMinPrice'
+            });
+          }
+          
+          // Используем дефолтное значение - пользователь не увидит ошибку,
+          // но цена будет отображаться корректно
+          setMinPrice(99);
         }
-        // Используем дефолтное значение - пользователь не увидит ошибку,
-        // но цена будет отображаться корректно
       } finally {
         if (!cancelled) {
           setIsPriceLoading(false);
