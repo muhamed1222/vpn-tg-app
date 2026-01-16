@@ -59,8 +59,16 @@ export async function GET(request: NextRequest) {
         });
       }
       
+      // Если эндпоинт не найден (404), возвращаем понятное сообщение
+      if (backendResponse.status === 404) {
+        return NextResponse.json(
+          { ok: false, contest: null, error: 'Contest endpoint not found on backend' },
+          { status: 404 }
+        );
+      }
+      
       return NextResponse.json(
-        { ok: false, contest: null, error: errorData.error || 'Failed to fetch active contest' },
+        { ok: false, contest: null, error: errorData.error || errorData.message || 'Failed to fetch active contest' },
         { status: backendResponse.status }
       );
     }
@@ -71,19 +79,37 @@ export async function GET(request: NextRequest) {
       contest: data.contest || null,
     });
   } catch (error) {
-    // Логируем только неожиданные ошибки (не связанные с отсутствием эндпоинтов)
-    const isExpectedError = error instanceof Error && (
-      error.message.includes('404') ||
-      error.message.includes('401') ||
-      error.message.includes('fetch failed')
+    // Проверяем, является ли это ошибкой сети или fetch
+    const isNetworkError = error instanceof Error && (
+      error.message.includes('fetch failed') ||
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('ENOTFOUND') ||
+      error.message.includes('timeout')
     );
     
-    if (!isExpectedError) {
+    // Логируем только неожиданные ошибки (не связанные с отсутствием эндпоинтов или сетью)
+    if (!isNetworkError) {
       logError('Active contest API error', error, {
         page: 'api',
         action: 'getActiveContest',
         endpoint: '/api/contest/active'
       });
+    }
+    
+    // Если это ошибка сети, возвращаем понятное сообщение
+    if (isNetworkError) {
+      return NextResponse.json(
+        { ok: false, contest: null, error: 'Network error: Backend unavailable' },
+        { status: 503 }
+      );
+    }
+    
+    // Если это ошибка 404 от бэкенда, значит эндпоинт не найден или конкурс не активен
+    if (error instanceof Error && error.message.includes('404')) {
+      return NextResponse.json(
+        { ok: false, contest: null, error: 'No active contest found' },
+        { status: 404 }
+      );
     }
     
     return NextResponse.json(

@@ -5,6 +5,7 @@ import "./globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/AuthProvider";
 import { IOSAuthHandler } from "@/components/IOSAuthHandler";
+import { ConsoleErrorFilter } from "@/components/ConsoleErrorFilter";
 
 const gtWalsheimPro = localFont({
   src: "../public/fonts/GTWalsheimPro-Regular.woff",
@@ -63,6 +64,7 @@ export default function RootLayout({
         style={{ fontFamily: `var(--font-gt-walsheim-pro), 'GT Walsheim Pro', system-ui, -apple-system, sans-serif` }}
       >
         <ErrorBoundary>
+          <ConsoleErrorFilter />
           <AuthProvider>
             <IOSAuthHandler />
             <div className="app-viewport">

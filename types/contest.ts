@@ -63,6 +63,8 @@ export interface ContestSummary {
   invited_total: number;
   qualified_total: number;
   pending_total: number;
+  rank?: number | null; // Позиция в рейтинге (1 = первое место)
+  total_participants?: number | null; // Общее количество участников
 }
 
 export interface TicketHistoryEntry {

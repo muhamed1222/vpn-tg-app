@@ -26,15 +26,18 @@ export default function ContestSummaryCard({
   const endDate = formatDateFull(summary.contest.ends_at);
 
   // Вычисляем позицию в топе и другие метрики
-  const { topPosition, totalParticipants, percentile, conversionRate } = useMemo(() => {
-    // TODO: Заменить на реальный расчет позиции в топе
-    const topPosition = 15; // Фиксированное значение для разработки
-    const totalParticipants = 150; // TODO: Получить из API
-    const percentile = Math.round((1 - topPosition / totalParticipants) * 100);
-    const conversionRate = summary.invited_total > 0 ? Math.round((summary.qualified_total / summary.invited_total) * 100) : 0;
+  const { topPosition, totalParticipants, percentile } = useMemo(() => {
+    // TODO: Получить реальную позицию из API (когда будет реализован эндпоинт)
+    const topPosition = summary.rank || null; // Будет приходить из API
+    const totalParticipants = summary.total_participants || null; // Будет приходить из API
     
-    return { topPosition, totalParticipants, percentile, conversionRate };
-  }, [summary.invited_total, summary.qualified_total]);
+    // Процент участников, которых пользователь обогнал
+    const percentile = topPosition && totalParticipants 
+      ? Math.round((1 - topPosition / totalParticipants) * 100)
+      : null;
+    
+    return { topPosition, totalParticipants, percentile };
+  }, [summary.rank, summary.total_participants]);
 
   return (
     <div className="bg-gradient-to-br from-[#F55128] via-[#FF6B3D] to-[#FF8A65] rounded-[20px] p-6 mb-6 border border-white/20 backdrop-blur-[12px] relative z-10 shadow-2xl">
@@ -85,7 +88,7 @@ export default function ContestSummaryCard({
 
       {/* Основные метрики */}
       <div className="bg-white/15 rounded-[16px] p-5 mb-4 border-2 border-white/30 shadow-lg backdrop-blur-sm">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-2 gap-4 text-center">
           {/* Билеты - главный акцент */}
           <div className="col-span-1">
             <div className="text-4xl font-black text-white mb-1 drop-shadow-lg">
@@ -93,7 +96,12 @@ export default function ContestSummaryCard({
             </div>
             <div className="text-white/90 text-sm font-semibold">Билетов</div>
             <div className="text-white/60 text-xs mt-1">
-              Топ {percentile}%
+              {percentile !== null && totalParticipants && totalParticipants > 0 
+                ? `Лучше ${percentile}%` 
+                : summary.tickets_total > 0 
+                  ? 'В рейтинге' 
+                  : '—'
+              }
             </div>
           </div>
           
@@ -105,17 +113,6 @@ export default function ContestSummaryCard({
             <div className="text-white/90 text-sm font-semibold">Друзей</div>
             <div className="text-white/60 text-xs mt-1">
               Приглашено
-            </div>
-          </div>
-          
-          {/* Конверсия */}
-          <div className="col-span-1 border-l border-white/20 pl-4">
-            <div className="text-3xl font-bold text-white mb-1">
-              {conversionRate}%
-            </div>
-            <div className="text-white/90 text-sm font-semibold">Конверсия</div>
-            <div className="text-white/60 text-xs mt-1">
-              {summary.qualified_total}/{summary.invited_total}
             </div>
           </div>
         </div>
@@ -135,10 +132,16 @@ export default function ContestSummaryCard({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <span className="font-medium">#{topPosition}</span>
-          <span>из {totalParticipants}</span>
-        </div>
+        {topPosition && totalParticipants && totalParticipants > 0 ? (
+          <div className="flex items-center gap-1">
+            <span className="font-medium">#{topPosition}</span>
+            <span>из {totalParticipants}</span>
+          </div>
+        ) : totalParticipants === 0 ? (
+          <div className="text-white/50 text-xs">Пока нет участников</div>
+        ) : (
+          <div className="text-white/50 text-xs">Рейтинг загружается...</div>
+        )}
       </div>
     </div>
   );

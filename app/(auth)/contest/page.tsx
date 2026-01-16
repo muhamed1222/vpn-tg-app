@@ -3,7 +3,7 @@
 import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { triggerHaptic, getTelegramWebApp } from '@/lib/telegram';
+import { triggerHaptic, getTelegramWebApp, getTelegramInitData } from '@/lib/telegram';
 import { logError } from '@/lib/utils/logging';
 import { ContestSummary, ReferralFriend, TicketHistoryEntry } from '@/types/contest-v2';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
@@ -36,37 +36,81 @@ export default function ContestPage() {
     setError(null);
 
     try {
-      // TODO: Заменить на реальные API запросы
-      // Временно используем реальные API эндпоинты
-      const [activeContestData, summaryData, friendsData, ticketsData] = await Promise.all([
+      // Получаем Telegram initData для авторизации
+      const initData = getTelegramInitData();
+      
+      // В режиме разработки используем mock данные, если initData нет
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (initData) {
+        headers['X-Telegram-Init-Data'] = initData;
+        headers['Authorization'] = initData;
+      } else if (process.env.NODE_ENV === 'development') {
+        // В development режиме используем mock initData
+        const mockInitData = 'query_id=STUB&user=%7B%22id%22%3A12345678%2C%22first_name%22%3A%22Developer%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22dev%22%2C%22language_code%22%3A%22ru%22%7D&auth_date=1623822263&hash=7777777777777777777777777777777777777777777777777777777777777777';
+        headers['X-Telegram-Init-Data'] = mockInitData;
+        headers['Authorization'] = mockInitData;
+      }
+
+      // Делаем запросы к API с авторизацией
+      const [activeContestResponse, summaryResponse, friendsResponse, ticketsResponse] = await Promise.all([
         // Получаем активный конкурс
-        fetch('/api/contest/active')
-          .then(res => res.ok ? res.json() : { ok: false, contest: null })
-          .catch(() => ({ ok: false, contest: null })),
+        fetch('/api/contest/active', { headers }).catch(() => null),
         // Получаем сводку по рефералам
-        fetch('/api/referral/summary?contest_id=550e8400-e29b-41d4-a716-446655440000')
-          .then(res => res.ok ? res.json() : { ok: false, summary: null })
-          .catch(() => ({ ok: false, summary: null })),
+        fetch('/api/referral/summary?contest_id=550e8400-e29b-41d4-a716-446655440000', { headers }).catch(() => null),
         // Получаем список друзей
-        fetch('/api/referral/friends?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=50')
-          .then(res => res.ok ? res.json() : { ok: false, friends: [] })
-          .catch(() => ({ ok: false, friends: [] })),
+        fetch('/api/referral/friends?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=50', { headers }).catch(() => null),
         // Получаем историю билетов
-        fetch('/api/referral/tickets?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=20')
-          .then(res => res.ok ? res.json() : { ok: false, tickets: [] })
-          .catch(() => ({ ok: false, tickets: [] })),
+        fetch('/api/referral/tickets?contest_id=550e8400-e29b-41d4-a716-446655440000&limit=20', { headers }).catch(() => null),
       ]);
+
+      // Обрабатываем ответы
+      const activeContestData = activeContestResponse?.ok 
+        ? await activeContestResponse.json().catch(() => ({ ok: false, contest: null, error: 'Parse error' }))
+        : { ok: false, contest: null, error: activeContestResponse ? `HTTP ${activeContestResponse.status}` : 'Network error' };
+      
+      const summaryData = summaryResponse?.ok
+        ? await summaryResponse.json().catch(() => ({ ok: false, summary: null, error: 'Parse error' }))
+        : { ok: false, summary: null, error: summaryResponse ? `HTTP ${summaryResponse.status}` : 'Network error' };
+      
+      const friendsData = friendsResponse?.ok
+        ? await friendsResponse.json().catch(() => ({ ok: false, friends: [], error: 'Parse error' }))
+        : { ok: false, friends: [], error: friendsResponse ? `HTTP ${friendsResponse.status}` : 'Network error' };
+      
+      const ticketsData = ticketsResponse?.ok
+        ? await ticketsResponse.json().catch(() => ({ ok: false, tickets: [], error: 'Parse error' }))
+        : { ok: false, tickets: [], error: ticketsResponse ? `HTTP ${ticketsResponse.status}` : 'Network error' };
 
       // Проверяем наличие активного конкурса
       if (!activeContestData.ok || !activeContestData.contest) {
-        setError('Нет активного конкурса');
+        // Если конкурс не найден, это нормально - конкурс может быть не активен
+        if (activeContestData.error?.includes('404') || 
+            activeContestData.error?.includes('not found') ||
+            activeContestData.error?.includes('Contest endpoint not found')) {
+          setError('В данный момент нет активного конкурса. Следите за обновлениями!');
+        } else if (activeContestData.error?.includes('401') || activeContestData.error?.includes('Missing Telegram')) {
+          setError('Ошибка авторизации. Пожалуйста, перезапустите приложение.');
+        } else if (activeContestData.error?.includes('500') || activeContestData.error?.includes('Internal Server Error')) {
+          setError('Ошибка сервера. Попробуйте позже.');
+        } else if (activeContestData.error?.includes('Network error') || activeContestData.error?.includes('Backend unavailable')) {
+          setError('Сервер временно недоступен. Попробуйте позже.');
+        } else {
+          setError('Нет активного конкурса');
+        }
         setLoading(false);
         return;
       }
 
       // Проверяем наличие сводки
       if (!summaryData.ok || !summaryData.summary) {
-        setError('Не удалось загрузить данные конкурса');
+        // Если сводка не найдена, но конкурс есть, показываем конкурс без данных
+        if (summaryData.error?.includes('404') || summaryData.error?.includes('not found')) {
+          setError('Данные конкурса временно недоступны. Попробуйте позже.');
+        } else {
+          setError('Не удалось загрузить данные конкурса');
+        }
         setLoading(false);
         return;
       }
@@ -170,7 +214,7 @@ export default function ContestPage() {
 
   if (loading) {
     return (
-      <main className="w-full bg-black text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
+      <main className="w-full text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
         <div className="flex items-center justify-center flex-1">
           <div className="text-center">
             <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
@@ -183,7 +227,7 @@ export default function ContestPage() {
 
   if (error || !summary) {
     return (
-      <main className="w-full bg-black text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
+      <main className="w-full text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
         <div className="sticky top-[calc(100px+env(safe-area-inset-top))] z-50 flex items-center justify-between w-fit mb-4">
           <Link href="/" className="p-2 bg-white/10 rounded-xl border border-white/10 active:scale-95 transition-all hover:bg-white/15" aria-label="Назад на главную">
             <ChevronLeftIcon className="w-6 h-6 text-white" aria-hidden="true" />
@@ -200,7 +244,7 @@ export default function ContestPage() {
   }
 
   return (
-    <main className="w-full bg-black text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
+    <main className="w-full text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col h-fit pb-[calc(40px+env(safe-area-inset-bottom))] relative">
       <AnimatedBackground />
 
       {/* Header with Back Button */}
@@ -231,7 +275,6 @@ export default function ContestPage() {
         >
           <span className="text-2xl">🎁</span>
           <span>Пригласить друзей</span>
-          <span className="text-sm font-normal text-white/80">+5 билетов за друга</span>
         </button>
         <div className="text-center mt-2">
           <p className="text-white/60 text-xs">
