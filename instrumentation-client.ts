@@ -37,7 +37,12 @@ Sentry.init({
   beforeSend(event, hint) {
     // Игнорируем предупреждения о params/searchParams Promise в Next.js 16
     if (event.message) {
-      const message = typeof event.message === 'string' ? event.message : event.message.formatted || '';
+      let message = '';
+      if (typeof event.message === 'string') {
+        message = event.message;
+      } else if (typeof event.message === 'object' && event.message !== null && 'formatted' in event.message) {
+        message = String((event.message as { formatted?: string }).formatted || '');
+      }
       if (message.includes('params are being enumerated') || 
           message.includes('params is a Promise') ||
           message.includes('searchParams') && message.includes('Promise') ||
