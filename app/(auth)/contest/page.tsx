@@ -108,6 +108,24 @@ export default function ContestPage() {
       }
 
       const contestId = activeContestData.contest.id;
+      const startsAt = new Date(activeContestData.contest.starts_at).getTime();
+      const now = new Date().getTime();
+
+      // Если конкурс еще не начался, не пытаемся грузить статистику (ее нет)
+      if (now < startsAt) {
+        setSummary({
+          contest: activeContestData.contest,
+          rank: 0,
+          tickets_total: 0,
+          invited_total: 0,
+          ref_link: '',
+          tickets_by_type: {}
+        } as any);
+        setFriends([]);
+        setTickets([]);
+        setLoading(false);
+        return;
+      }
 
       // Теперь загружаем данные конкурса параллельно с таймаутом
       const [summaryResponse, friendsResponse, ticketsResponse] = await Promise.all([
@@ -142,7 +160,15 @@ export default function ContestPage() {
         // Если сводка не найдена, но конкурс есть, показываем конкурс без данных
         const errorMsg = summaryData.error || '';
         if (summaryResponse?.status === 404 || errorMsg.includes('404') || errorMsg.includes('not found')) {
-          setError('Данные конкурса временно недоступны. Попробуйте позже.');
+          // Fallback: показываем конкурс с нулями
+          setSummary({
+            contest: activeContestData.contest,
+            rank: 0,
+            tickets_total: 0,
+            invited_total: 0,
+            ref_link: '',
+            tickets_by_type: {}
+          } as any);
         } else {
           setError('Не удалось загрузить данные конкурса. Попробуйте позже.');
         }
