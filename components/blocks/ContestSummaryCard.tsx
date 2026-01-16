@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { ContestSummary } from '@/types/contest';
+import CountdownTimer from './CountdownTimer';
 
 interface ContestProgress {
   daysRemaining: number;
@@ -38,24 +39,18 @@ export default function ContestSummaryCard({
 
   return (
     <div className="bg-gradient-to-br from-[#F55128] via-[#FF6B3D] to-[#FF8A65] rounded-[10px] p-3.5 mb-6 border border-white/20 backdrop-blur-[12px] relative z-10 shadow-2xl">
-      {/* Заголовок с прогресс-баром */}
+      {/* Заголовок с таймером */}
       <div className="mb-[14px]">
-        <div className="flex justify-between items-start mb-0">
+        <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
             <h1 className="text-xl font-medium text-white leading-tight mb-2">
               Розыгрыш
             </h1>
           </div>
-          {progress && (
-            <div className="text-right flex items-center gap-2">
-              <div className="text-sm font-bold text-white">
-                {progress.daysRemaining}
-              </div>
-              <div className="text-sm text-white/70 uppercase tracking-wide">
-                Дней осталось
-              </div>
-            </div>
-          )}
+        </div>
+        {/* Обратный отсчет до окончания конкурса */}
+        <div className="flex justify-center">
+          <CountdownTimer targetDate={summary.contest.ends_at} label="До окончания" />
         </div>
       </div>
 

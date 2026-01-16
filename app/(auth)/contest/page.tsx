@@ -20,6 +20,9 @@ const TicketsHistory = lazy(() =>
 const ContestRulesModal = lazy(() =>
   import('@/components/blocks/ContestRulesModal')
 );
+const ContestCountdownScreen = lazy(() =>
+  import('@/components/blocks/ContestCountdownScreen')
+);
 
 export default function ContestPage() {
   const [summary, setSummary] = useState<ContestSummary | null>(null);
@@ -168,6 +171,40 @@ export default function ContestPage() {
     loadContestData();
   }, [loadContestData]);
 
+  // Добавляем состояние для отслеживания старта конкурса
+  const [hasStarted, setHasStarted] = useState<boolean | null>(null);
+
+  // Проверяем, начался ли конкурс, и обновляем состояние периодически
+  useEffect(() => {
+    if (!summary) return;
+
+    const now = new Date().getTime();
+    const startTime = new Date(summary.contest.starts_at).getTime();
+    const started = now >= startTime;
+
+    // Если конкурс уже начался, устанавливаем флаг и выходим
+    if (started) {
+      setHasStarted(true);
+      return;
+    }
+
+    // Если конкурс еще не начался, проверяем каждую секунду
+    setHasStarted(false);
+    
+    const intervalId = setInterval(() => {
+      const currentTime = new Date().getTime();
+      const started = currentTime >= startTime;
+      
+      if (started) {
+        // Конкурс начался - обновляем состояние и перезагружаем данные
+        setHasStarted(true);
+        loadContestData();
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [summary, loadContestData]);
+
   // Мемоизируем расчет прогресса конкурса
   const contestProgress = useMemo(() => {
     if (!summary) return { daysRemaining: 0, daysTotal: 0, percent: 0 };
@@ -265,6 +302,32 @@ export default function ContestPage() {
           </div>
         </div>
       </main>
+    );
+  }
+
+  // Если конкурс еще не начался, показываем экран ожидания
+  // Используем состояние hasStarted, если оно установлено, иначе вычисляем локально
+  const now = new Date().getTime();
+  const startTime = new Date(summary.contest.starts_at).getTime();
+  const contestHasStarted = hasStarted !== null ? hasStarted : now >= startTime;
+
+  if (!contestHasStarted) {
+    return (
+      <Suspense fallback={
+        <main className="w-full text-white pt-[calc(100px+env(safe-area-inset-top))] pl-4 pr-4 font-sans select-none flex flex-col min-h-screen">
+          <div className="flex items-center justify-center flex-1">
+            <div className="text-center">
+              <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-white/60">Загрузка...</p>
+            </div>
+          </div>
+        </main>
+      }>
+        <ContestCountdownScreen 
+          contestTitle={summary.contest.title}
+          startsAt={summary.contest.starts_at}
+        />
+      </Suspense>
     );
   }
 
