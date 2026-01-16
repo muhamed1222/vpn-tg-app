@@ -172,25 +172,34 @@ export default function ContestPage() {
   }, [loadContestData]);
 
   // Добавляем состояние для отслеживания старта конкурса
-  const [hasStarted, setHasStarted] = useState<boolean | null>(null);
+  const [hasStarted, setHasStarted] = useState<boolean>(() => {
+    if (!summary) return true; // Если нет summary, показываем основной экран
+    
+    const now = new Date().getTime();
+    const startTime = new Date(summary.contest.starts_at).getTime();
+    return now >= startTime;
+  });
 
-  // Проверяем, начался ли конкурс, и обновляем состояние периодически
+  // Обновляем состояние при изменении summary и проверяем периодически, если конкурс еще не начался
   useEffect(() => {
-    if (!summary) return;
+    if (!summary) {
+      setHasStarted(true); // Если нет summary, показываем основной экран
+      return;
+    }
 
     const now = new Date().getTime();
     const startTime = new Date(summary.contest.starts_at).getTime();
     const started = now >= startTime;
 
-    // Если конкурс уже начался, устанавливаем флаг и выходим
+    // Обновляем состояние при изменении summary
+    setHasStarted(started);
+
+    // Если конкурс уже начался, не нужно проверять
     if (started) {
-      setHasStarted(true);
       return;
     }
 
     // Если конкурс еще не начался, проверяем каждую секунду
-    setHasStarted(false);
-    
     const intervalId = setInterval(() => {
       const currentTime = new Date().getTime();
       const started = currentTime >= startTime;
@@ -306,12 +315,10 @@ export default function ContestPage() {
   }
 
   // Если конкурс еще не начался, показываем экран ожидания
-  // Используем состояние hasStarted, если оно установлено, иначе вычисляем локально
-  const now = new Date().getTime();
-  const startTime = new Date(summary.contest.starts_at).getTime();
-  const contestHasStarted = hasStarted !== null ? hasStarted : now >= startTime;
+  // Используем состояние hasStarted (для реактивности) или вычисленное значение (для первого рендера)
+  const shouldShowCountdown = !hasStarted;
 
-  if (!contestHasStarted) {
+  if (shouldShowCountdown) {
     return (
       <Suspense fallback={
         <main className="w-full text-white pt-[calc(100px+env(safe-area-inset-top))] pl-4 pr-4 font-sans select-none flex flex-col min-h-screen">
