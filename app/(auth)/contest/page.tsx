@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { triggerHaptic, getTelegramWebApp, getTelegramInitData } from '@/lib/telegram';
 import { logError } from '@/lib/utils/logging';
 import { ContestSummary, ReferralFriend, TicketHistoryEntry } from '@/types/contest-v2';
-import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 
 // Lazy loading для компонентов
 const ContestSummaryCard = lazy(() =>
@@ -245,8 +244,6 @@ export default function ContestPage() {
 
   return (
     <main className="w-full text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col h-fit pb-[calc(40px+env(safe-area-inset-bottom))] relative">
-      <AnimatedBackground />
-
       {/* Header with Back Button */}
       <div className="sticky top-[calc(100px+env(safe-area-inset-top))] z-50 flex items-center justify-between w-fit mb-4 relative">
         <Link 

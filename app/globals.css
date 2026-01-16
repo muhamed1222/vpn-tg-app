@@ -78,7 +78,6 @@ p, h1, h2, h3, h4, h5, h6, span, div, button, a, input, textarea, select, label 
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
-  margin-bottom: 40px;
 }
 
 body.modal-open .app-viewport {
