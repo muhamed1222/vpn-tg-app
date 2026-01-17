@@ -1,21 +1,18 @@
 'use client';
 
-import React, { useEffect, useState, lazy, Suspense, useMemo, startTransition } from 'react';
+import React, { useEffect, useState, lazy, Suspense, useMemo, useCallback, startTransition } from 'react';
 import { BoltIcon as Plug, Cog6ToothIcon as Settings, UserIcon as User, ChatBubbleLeftRightIcon as MessageSquare, GiftIcon as Gift } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { initTelegramWebApp, getTelegramPlatform, triggerHaptic } from '@/lib/telegram';
+import { triggerHaptic } from '@/lib/telegram';
 import { useSubscriptionStore } from '@/store/subscription.store';
 import { LogoIcon } from '@/components/ui/LogoIcon';
 import { BackgroundCircles } from '@/components/ui/BackgroundCircles';
-import { SUBSCRIPTION_CONFIG } from '@/lib/constants';
-import { checkTelegramWebApp, getPlatformSafe, isOnline, subscribeToOnlineStatus } from '@/lib/telegram-fallback';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { SubscriptionCardSkeleton, SkeletonLoader } from '@/components/ui/SkeletonLoader';
+import { isOnline, subscribeToOnlineStatus } from '@/lib/telegram-fallback';
+import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
-import { logError } from '@/lib/utils/logging';
-import { getCache, setCache } from '@/lib/utils/cache';
 import { formatExpirationDate } from '@/lib/utils/date';
-import { ApiException } from '@/lib/api';
+import { usePlatform } from '@/hooks/usePlatform';
+import { useMinPrice } from '@/hooks/useMinPrice';
 
 // Lazy loading для модалок - загружаются только когда нужны
 const SupportModal = lazy(() =>
@@ -27,22 +24,10 @@ const SupportModal = lazy(() =>
 export default function Home() {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isOnlineStatus, setIsOnlineStatus] = useState(true);
-  const [minPrice, setMinPrice] = useState<number>(99);
-  const [isPriceLoading, setIsPriceLoading] = useState(true);
 
-  // Инициализируем платформу - используем useEffect чтобы избежать hydration mismatch
-  const [platform, setPlatform] = useState<string>('...');
-
-  useEffect(() => {
-    // Определяем платформу только на клиенте после mount
-    const { isAvailable } = checkTelegramWebApp();
-    if (isAvailable) {
-      setPlatform(getTelegramPlatform());
-    } else {
-      setPlatform(getPlatformSafe());
-    }
-  }, []);
-
+  // Используем оптимизированные хуки вместо локальных useEffect
+  const platform = usePlatform();
+  const { minPrice, isLoading: isPriceLoading } = useMinPrice();
   const { subscription, loading: subscriptionLoading } = useSubscriptionStore();
 
   // Мемоизируем форматированную дату для избежания пересчета
@@ -50,136 +35,31 @@ export default function Home() {
     return formatExpirationDate(subscription?.expiresAt);
   }, [subscription?.expiresAt]);
 
-  // Загружаем минимальную цену из тарифов с кэшированием (мемоизировано)
-  useEffect(() => {
-    let cancelled = false;
-    
-    const loadMinPrice = async () => {
-      // Проверяем кэш (TTL: 5 минут)
-      const CACHE_KEY = 'min_price';
-      const CACHE_TTL = 5 * 60 * 1000; // 5 минут
-      
-      const cachedPrice = getCache<number>(CACHE_KEY);
-      if (cachedPrice !== null) {
-        if (!cancelled) {
-          setMinPrice(cachedPrice);
-          setIsPriceLoading(false);
-        }
-        return;
-      }
+  // Мемоизируем вычисление статуса VPN для избежания пересчета
+  const vpnStatus = useMemo(() => {
+    if (!isOnlineStatus) {
+      return { text: 'offline (нет сети)', color: 'text-yellow-500', ariaLabel: 'нет подключения к интернету' };
+    }
+    if (subscription?.status === 'active') {
+      return { text: 'online', color: 'text-[#F55128]', ariaLabel: 'онлайн' };
+    }
+    return { text: 'offline', color: 'text-[#F55128]/60', ariaLabel: 'офлайн' };
+  }, [isOnlineStatus, subscription?.status]);
 
-      // Ждем инициализации Telegram WebApp
-      const { checkTelegramWebApp } = await import('@/lib/telegram-fallback');
-      const { isAvailable } = checkTelegramWebApp();
-
-      if (!isAvailable) {
-        if (!cancelled) {
-          setIsPriceLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const { api } = await import('@/lib/api');
-        const tariffs = await api.getTariffs();
-        
-        if (cancelled) return;
-        
-        if (tariffs && tariffs.length > 0) {
-          // Находим минимальную цену среди всех тарифов в рублях (исключая plan_7)
-          const validTariffs = tariffs.filter(t => t.id !== 'plan_7');
-          if (validTariffs.length > 0) {
-            const prices = validTariffs.map(t => t.price_rub || t.price_stars).filter(p => p != null && p > 0);
-            if (prices.length > 0) {
-              const min = Math.min(...prices);
-              if (!cancelled) {
-                setMinPrice(min);
-                // Сохраняем в кэш
-                setCache(CACHE_KEY, min, CACHE_TTL);
-              }
-            } else {
-              // Если нет валидных цен, используем дефолт 99
-              if (!cancelled) {
-                setMinPrice(99);
-              }
-            }
-          } else {
-            // Если нет валидных тарифов, используем дефолт 99
-            if (!cancelled) {
-              setMinPrice(99);
-            }
-          }
-        } else {
-          // Если тарифы не загрузились, используем дефолт
-          if (!cancelled) {
-            setMinPrice(99);
-          }
-        }
-      } catch (error) {
-        // Логируем ошибку только если это не отмена и не ожидаемая сетевая ошибка
-        if (!cancelled) {
-          // Проверяем, является ли это ожидаемой сетевой ошибкой
-          const isNetworkError = (error instanceof ApiException && 
-            (error.message.includes('Проблема с подключением') || 
-             error.message.includes('Request timeout'))) ||
-            (error instanceof Error && 
-              (error.message.includes('Проблема с подключением') || 
-               error.message.includes('Request timeout') ||
-               error.message.includes('Failed to fetch') ||
-               error.name === 'NetworkError'));
-          
-          // Не логируем ожидаемые сетевые ошибки, так как они обрабатываются gracefully
-          if (!isNetworkError) {
-            // Проверяем, не является ли ошибка пустым объектом
-            const isEmptyObject = error && typeof error === 'object' && Object.keys(error).length === 0;
-            
-            // Создаем нормализованную ошибку для логирования
-            let normalizedError: Error;
-            if (isEmptyObject) {
-              // Если это пустой объект, создаем простую ошибку с сообщением
-              normalizedError = new Error('Failed to load tariffs (empty error object)');
-            } else if (error instanceof Error) {
-              normalizedError = error;
-            } else if (error instanceof Response) {
-              normalizedError = new Error(`HTTP ${error.status}: ${error.statusText || 'Failed to fetch'}`);
-            } else if (error && typeof error === 'object' && 'message' in error) {
-              normalizedError = new Error(String((error as { message: unknown }).message || 'Unknown error'));
-            } else {
-              normalizedError = new Error(String(error || 'Unknown error'));
-            }
-            
-            logError('Failed to load tariffs for min price', normalizedError, {
-              page: 'home',
-              action: 'loadMinPrice'
-            });
-          }
-          
-          // Используем дефолтное значение - пользователь не увидит ошибку,
-          // но цена будет отображаться корректно
-          setMinPrice(99);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsPriceLoading(false);
-        }
-      }
-    };
-
-    // Задержка для инициализации Telegram WebApp
-    const timer = setTimeout(loadMinPrice, 500);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+  // Мемоизируем обработчик открытия поддержки
+  const handleSupportOpen = useCallback(() => {
+    triggerHaptic('medium');
+    setIsSupportOpen(true);
   }, []);
 
+  // Оптимизированная подписка на онлайн статус
   useEffect(() => {
-    // Подписываемся на изменения онлайн статуса
-    // Используем startTransition для оптимизации обновлений состояния
+    // Устанавливаем начальный статус
     startTransition(() => {
       setIsOnlineStatus(isOnline());
     });
 
+    // Подписываемся на изменения
     const unsubscribe = subscribeToOnlineStatus((status) => {
       startTransition(() => {
         setIsOnlineStatus(status);
@@ -271,11 +151,11 @@ export default function Home() {
               - Размер: text-base font-medium
             */}
             <p
-              className={`text-base font-medium ${!isOnlineStatus ? 'text-yellow-500' : subscription?.status === 'active' ? 'text-[#F55128]' : 'text-[#F55128]/60'}`}
+              className={`text-base font-medium ${vpnStatus.color}`}
               aria-live="polite"
-              aria-label={`Статус VPN: ${!isOnlineStatus ? 'нет подключения к интернету' : subscription?.status === 'active' ? 'онлайн' : 'офлайн'}`}
+              aria-label={`Статус VPN: ${vpnStatus.ariaLabel}`}
             >
-              {!isOnlineStatus ? 'offline (нет сети)' : subscription?.status === 'active' ? 'online' : 'offline'}
+              {vpnStatus.text}
             </p>
           </div>
 
@@ -456,10 +336,7 @@ export default function Home() {
               - Кнопка быстрого перехода в Telegram-чат поддержки
             */}
             <button
-              onClick={() => {
-                triggerHaptic('medium');
-                setIsSupportOpen(true);
-              }}
+              onClick={handleSupportOpen}
               className="h-fit bg-transparent border border-white/10 hover:bg-white/5 active:scale-[0.98] transition-all rounded-[10px] flex items-center px-[14px] py-[14px] gap-[10px] text-white"
               aria-label="Открыть окно поддержки"
               aria-haspopup="dialog"
