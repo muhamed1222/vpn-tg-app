@@ -83,7 +83,16 @@ export default function AdminContestPage() {
         const contestData = await contestResponse.json();
         
         if (!contestData.ok || !contestData.contest) {
-          setError('Активный конкурс не найден');
+          const errorMsg = contestData.error || 'Активный конкурс не найден';
+          setError(errorMsg);
+          setLoading(false);
+          return;
+        }
+
+        // Проверяем, что это не mock конкурс
+        if (contestData.contest.id === 'upcoming-contest-mock' || 
+            contestData.contest.id === 'dev-mock-contest') {
+          setError('Активный конкурс не найден. Пожалуйста, создайте конкурс в базе данных.');
           setLoading(false);
           return;
         }

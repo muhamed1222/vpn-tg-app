@@ -102,9 +102,17 @@ export async function GET(request: NextRequest) {
       }
 
       // Если эндпоинт не найден (404), это значит активного конкурса нет.
-      // Но для отображения таймера нам нужен "будущий" конкурс.
-      // Симулируем ответ бэкенда с будущим конкурсом.
+      // Для админов не возвращаем mock, показываем реальную ошибку
       if (backendResponse.status === 404) {
+        const isAdminPage = request.url.includes('/admin');
+        if (isAdminPage) {
+          // Для админов возвращаем реальную ошибку
+          return NextResponse.json(
+            { ok: false, contest: null, error: 'No active contest found' },
+            { status: 404 }
+          );
+        }
+        // Для обычных пользователей возвращаем mock для отображения таймера
         return NextResponse.json({
           ok: true,
           contest: {
