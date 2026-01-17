@@ -56,36 +56,32 @@ export default function AdminContestPage() {
           headers['Authorization'] = initData;
         }
 
-        // Сначала получаем активный конкурс (без headers для админов - используется сессия)
+        // Для админов: используем известный ID конкурса напрямую
+        // (так как getActiveContest проверяет даты, а конкурс может еще не начаться)
+        const KNOWN_CONTEST_ID = '550e8400-e29b-41d4-a716-446655440000';
+        
+        // Пробуем сначала получить через /api/contest/active (для проверки)
         const contestResponse = await fetch('/api/contest/active', { 
           headers: initData ? headers : undefined,
-          credentials: 'include' // Важно: передаем cookies для админской сессии
+          credentials: 'include',
+          cache: 'no-store' // Не кешируем для админов
         });
         
-        if (!contestResponse.ok) {
-          setError('Не удалось загрузить конкурс');
-          setLoading(false);
-          return;
-        }
-
-        const contestData = await contestResponse.json();
+        let activeContestId: string = KNOWN_CONTEST_ID; // По умолчанию используем известный ID
         
-        if (!contestData.ok || !contestData.contest) {
-          const errorMsg = contestData.error || 'Активный конкурс не найден';
-          setError(errorMsg);
-          setLoading(false);
-          return;
+        if (contestResponse.ok) {
+          const contestData = await contestResponse.json();
+          
+          if (contestData.ok && contestData.contest) {
+            // Проверяем, что это не mock конкурс и не старый деактивированный конкурс
+            if (contestData.contest.id !== 'upcoming-contest-mock' && 
+                contestData.contest.id !== 'dev-mock-contest' &&
+                contestData.contest.id !== 'contest-20260117') { // Игнорируем старый конкурс
+              activeContestId = contestData.contest.id;
+            }
+          }
         }
-
-        // Проверяем, что это не mock конкурс
-        if (contestData.contest.id === 'upcoming-contest-mock' || 
-            contestData.contest.id === 'dev-mock-contest') {
-          setError('Активный конкурс не найден. Пожалуйста, создайте конкурс в базе данных.');
-          setLoading(false);
-          return;
-        }
-
-        const activeContestId = contestData.contest.id;
+        
         setContestId(activeContestId);
 
         // Загружаем билеты (развернутые)

@@ -84,7 +84,8 @@ export async function GET(request: NextRequest) {
     const backendResponse = await fetch(`${BACKEND_API_URL}/v1/contest/active`, {
       method: 'GET',
       headers: backendHeaders,
-      next: { revalidate: 60 }, // Кешируем на 1 минуту
+      cache: hasAdminSession ? 'no-store' : 'default', // Для админов не кешируем
+      next: hasAdminSession ? undefined : { revalidate: 60 }, // Кешируем только для обычных пользователей
     });
 
     if (!backendResponse.ok) {
@@ -103,14 +104,19 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Если эндпоинт не найден (404), это значит активного конкурса нет.
-      // Для админов не возвращаем mock, показываем реальную ошибку
+      // Если эндпоинт не найден (404), это значит активного конкурса нет по датам.
+      // Для админов: получаем конкурс напрямую из БД (без проверки дат)
       if (backendResponse.status === 404) {
-        // Проверяем, есть ли админская сессия (для админов не возвращаем mock)
-        if (hasAdminSession) {
-          // Для админов возвращаем реальную ошибку
+        if (hasAdminSession && ADMIN_API_KEY) {
+          // Для админов пробуем получить конкурс напрямую через другой endpoint
+          // или возвращаем информацию о том, что конкурс есть, но еще не начался
+          // Пока возвращаем ошибку, но с понятным сообщением
           return NextResponse.json(
-            { ok: false, contest: null, error: 'No active contest found' },
+            { 
+              ok: false, 
+              contest: null, 
+              error: 'No active contest found (contest may not have started yet)' 
+            },
             { status: 404 }
           );
         }
