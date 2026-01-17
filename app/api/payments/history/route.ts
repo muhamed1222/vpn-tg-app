@@ -39,7 +39,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Проксируем запрос на бэкенд API с initData в Authorization header
-    const backendResponse = await fetch(`${BACKEND_API_URL}/v1/payments/history`, {
+    const backendUrl = `${BACKEND_API_URL}/v1/payments/history`;
+    
+    logError('Payments history request', null, {
+      page: 'api',
+      action: 'getPaymentsHistory',
+      endpoint: '/api/payments/history',
+      backendUrl,
+      hasInitData: !!initData,
+    });
+
+    const backendResponse = await fetch(backendUrl, {
       method: 'GET',
       headers: {
         'Authorization': initData, // initData в Authorization header
@@ -49,13 +59,31 @@ export async function GET(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
+      const errorMessage = errorData.error || errorData.message || 'Ошибка загрузки истории платежей';
+      
+      logError('Payments history API error', new Error(errorMessage), {
+        page: 'api',
+        action: 'getPaymentsHistory',
+        endpoint: '/api/payments/history',
+        status: backendResponse.status,
+        error: errorMessage,
+      });
+      
       return NextResponse.json(
-        { error: errorData.error || 'Ошибка загрузки истории платежей' },
+        { error: errorMessage },
         { status: backendResponse.status }
       );
     }
 
     const data = await backendResponse.json();
+    
+    logError('Payments history success', null, {
+      page: 'api',
+      action: 'getPaymentsHistory',
+      endpoint: '/api/payments/history',
+      paymentsCount: Array.isArray(data) ? data.length : 0,
+    });
+    
     return NextResponse.json(data);
   } catch (error) {
     logError('Payments history API error', error, {
