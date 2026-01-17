@@ -247,59 +247,73 @@ export const api = {
     };
   },
 
-  // Получение статуса пользователя и статистики
+  // Получение статуса пользователя и статистики (с кэшированием на 1 минуту)
   getUserStatus: async () => {
-    // Параллельно получаем статус и billing
-    const [statusData, billing] = await Promise.all([
-      apiFetch<{
-        ok: boolean;
-        status: string;
-        expiresAt: number | null;
-        usedTraffic: number;
-        dataLimit: number;
-      }>('user/status', { method: 'GET' }),
-      apiFetch<{
-        usedBytes: number;
-        limitBytes: number | null;
-        averagePerDayBytes: number;
-        planId: string | null;
-        planName: string | null;
-        period: {
-          start: number | null;
-          end: number | null;
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      'user_status',
+      async () => {
+        // Параллельно получаем статус и billing
+        const [statusData, billing] = await Promise.all([
+          apiFetch<{
+            ok: boolean;
+            status: string;
+            expiresAt: number | null;
+            usedTraffic: number;
+            dataLimit: number;
+          }>('user/status', { method: 'GET' }),
+          apiFetch<{
+            usedBytes: number;
+            limitBytes: number | null;
+            averagePerDayBytes: number;
+            planId: string | null;
+            planName: string | null;
+            period: {
+              start: number | null;
+              end: number | null;
+            };
+          }>('user/billing', { method: 'GET' }).catch(() => ({
+            usedBytes: 0,
+            limitBytes: null,
+            averagePerDayBytes: 0,
+            planId: null,
+            planName: null,
+            period: { start: null, end: null },
+          })),
+        ]);
+
+        const isActive = statusData.status === 'active';
+
+        return {
+          ok: isActive,
+          status: isActive ? 'active' as const : 'disabled' as const,
+          expiresAt: statusData.expiresAt || null,
+          usedTraffic: billing.usedBytes || statusData.usedTraffic || 0,
+          dataLimit: billing.limitBytes || statusData.dataLimit || 0,
         };
-      }>('user/billing', { method: 'GET' }).catch(() => ({
-        usedBytes: 0,
-        limitBytes: null,
-        averagePerDayBytes: 0,
-        planId: null,
-        planName: null,
-        period: { start: null, end: null },
-      })),
-    ]);
-
-    const isActive = statusData.status === 'active';
-
-    return {
-      ok: isActive,
-      status: isActive ? 'active' as const : 'disabled' as const,
-      expiresAt: statusData.expiresAt || null,
-      usedTraffic: billing.usedBytes || statusData.usedTraffic || 0,
-      dataLimit: billing.limitBytes || statusData.dataLimit || 0,
-    };
+      },
+      1 * 60 * 1000 // 1 минута
+    );
   },
 
-  // Получение истории платежей
-  getPaymentsHistory: () => apiFetch<Array<{
-    id: string;
-    orderId: string;
-    amount: number;
-    currency: string;
-    date: number;
-    status: 'success' | 'pending' | 'fail';
-    planId: string;
-    planName: string;
-  }>>('payments/history', { method: 'GET' }),
+  // Получение истории платежей (с кэшированием на 2 минуты)
+  getPaymentsHistory: async () => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      'payments_history',
+      () => apiFetch<Array<{
+        id: string;
+        orderId: string;
+        amount: number;
+        currency: string;
+        date: number;
+        status: 'success' | 'pending' | 'fail';
+        planId: string;
+        planName: string;
+      }>>('payments/history', { method: 'GET' }),
+      2 * 60 * 1000 // 2 минуты
+    );
+  },
 
   // Получение тарифов (с кэшированием на 5 минут)
   getTariffs: async () => {
@@ -371,15 +385,22 @@ export const api = {
     body: JSON.stringify({ enabled })
   }),
 
-  // История начислений рефералов
-  getReferralHistory: () => apiFetch<Array<{
-    id: string;
-    amount: number;
-    currency: string;
-    date: number;
-    referralId: string;
-    status: 'pending' | 'completed' | 'cancelled';
-  }>>('user/referrals/history', { method: 'GET' }),
+  // История начислений рефералов (с кэшированием на 2 минуты)
+  getReferralHistory: async () => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      'referral_history',
+      () => apiFetch<Array<{
+        id: string;
+        amount: number;
+        currency: string;
+        date: number;
+        referralId: string;
+        status: 'pending' | 'completed' | 'cancelled';
+      }>>('user/referrals/history', { method: 'GET' }),
+      2 * 60 * 1000 // 2 минуты
+    );
+  },
 
   // Конкурсы
   getActiveContest: async () => {
@@ -402,48 +423,69 @@ export const api = {
     );
   },
 
-  getContestSummary: (contestId: string) => apiFetch<{
-    ok: boolean;
-    summary: {
-      contest: {
-        id: string;
-        title: string;
-        starts_at: string;
-        ends_at: string;
-        attribution_window_days: number;
-        rules_version: string;
-        is_active: boolean;
-      };
-      ref_link: string;
-      tickets_total: number;
-      invited_total: number;
-      qualified_total: number;
-      pending_total: number;
-    };
-  }>(`referral/summary?contest_id=${contestId}`, { method: 'GET' }),
+  getContestSummary: async (contestId: string) => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      `contest_summary_${contestId}`,
+      () => apiFetch<{
+        ok: boolean;
+        summary: {
+          contest: {
+            id: string;
+            title: string;
+            starts_at: string;
+            ends_at: string;
+            attribution_window_days: number;
+            rules_version: string;
+            is_active: boolean;
+          };
+          ref_link: string;
+          tickets_total: number;
+          invited_total: number;
+          qualified_total: number;
+          pending_total: number;
+        };
+      }>(`referral/summary?contest_id=${contestId}`, { method: 'GET' }),
+      1 * 60 * 1000 // 1 минута
+    );
+  },
 
-  getContestFriends: (contestId: string, limit: number = 50) => apiFetch<{
-    ok: boolean;
-    friends: Array<{
-      id: string;
-      name: string | null;
-      tg_username: string | null;
-      status: 'bound' | 'qualified' | 'blocked' | 'not_qualified';
-      status_reason: string | null;
-      tickets_from_friend_total: number;
-      bound_at: string;
-    }>;
-  }>(`referral/friends?contest_id=${contestId}&limit=${limit}`, { method: 'GET' }),
+  getContestFriends: async (contestId: string, limit: number = 50) => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      `contest_friends_${contestId}_${limit}`,
+      () => apiFetch<{
+        ok: boolean;
+        friends: Array<{
+          id: string;
+          name: string | null;
+          tg_username: string | null;
+          status: 'bound' | 'qualified' | 'blocked' | 'not_qualified';
+          status_reason: string | null;
+          tickets_from_friend_total: number;
+          bound_at: string;
+        }>;
+      }>(`referral/friends?contest_id=${contestId}&limit=${limit}`, { method: 'GET' }),
+      1 * 60 * 1000 // 1 минута
+    );
+  },
 
-  getContestTickets: (contestId: string) => apiFetch<{
-    ok: boolean;
-    tickets: Array<{
-      id: string;
-      created_at: string;
-      delta: number;
-      label: string;
-      invitee_name: string | null;
-    }>;
-  }>(`referral/tickets?contest_id=${contestId}`, { method: 'GET' }),
+  getContestTickets: async (contestId: string) => {
+    const { cachedFetch } = await import('@/lib/utils/apiCache');
+    return cachedFetch(
+      `contest_tickets_${contestId}`,
+      () => apiFetch<{
+        ok: boolean;
+        tickets: Array<{
+          id: string;
+          created_at: string;
+          delta: number;
+          label: string;
+          invitee_name: string | null;
+        }>;
+      }>(`referral/tickets?contest_id=${contestId}`, { method: 'GET' }),
+      1 * 60 * 1000 // 1 минута
+    );
+  },
 };
 

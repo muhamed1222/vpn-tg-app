@@ -20,7 +20,8 @@ export function useSubscriptionUrl() {
 
   useEffect(() => {
     const loadSubscriptionUrl = async () => {
-      // Проверяем кэш
+      // Проверяем localStorage кэш (персистентный между сессиями)
+      // API.getUserConfig() уже использует cachedFetch для кэширования в памяти
       const cachedUrl = getCache<string>(CACHE_KEY);
       if (cachedUrl !== null) {
         // Валидация URL из кэша
@@ -28,6 +29,22 @@ export function useSubscriptionUrl() {
           new URL(cachedUrl);
           setSubscriptionUrl(cachedUrl);
           setLoading(false);
+          // Загружаем актуальные данные в фоне (но не блокируем UI)
+          api.getUserConfig()
+            .then(configData => {
+              if (configData.ok && configData.config) {
+                try {
+                  new URL(configData.config);
+                  setSubscriptionUrl(configData.config);
+                  setCache(CACHE_KEY, configData.config, CACHE_TTL);
+                } catch {
+                  // Игнорируем невалидный URL
+                }
+              }
+            })
+            .catch(() => {
+              // Игнорируем ошибки фоновой загрузки, используем кэш
+            });
           return;
         } catch {
           // Если URL невалидный, удаляем из кэша и загружаем заново

@@ -20,11 +20,32 @@ export function useMinPrice() {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadMinPrice = useCallback(async () => {
-    // Проверяем кэш
+    // Проверяем localStorage кэш (персистентный между сессиями)
+    // API.getTariffs() уже использует cachedFetch для кэширования в памяти
     const cachedPrice = getCache<number>(CACHE_KEY);
     if (cachedPrice !== null) {
       setMinPrice(cachedPrice);
       setIsLoading(false);
+      // Загружаем актуальные данные в фоне (но не блокируем UI)
+      api.getTariffs()
+        .then(tariffs => {
+          if (tariffs && tariffs.length > 0) {
+            const validTariffs = tariffs.filter(t => t.id !== 'plan_7');
+            if (validTariffs.length > 0) {
+              const prices = validTariffs
+                .map(t => t.price_rub || t.price_stars)
+                .filter((p): p is number => p != null && p > 0);
+              if (prices.length > 0) {
+                const min = Math.min(...prices);
+                setMinPrice(min);
+                setCache(CACHE_KEY, min, CACHE_TTL);
+              }
+            }
+          }
+        })
+        .catch(() => {
+          // Игнорируем ошибки фоновой загрузки, используем кэш
+        });
       return;
     }
 
