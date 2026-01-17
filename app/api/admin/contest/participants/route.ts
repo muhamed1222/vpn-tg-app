@@ -16,8 +16,13 @@ const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.ADM || process.en
 export async function GET(request: NextRequest) {
   console.log('[Admin API Debug] Env check:', {
     hasAdminApiKey: !!ADMIN_API_KEY,
+    hasADM: !!process.env.ADM,
+    hasADMIN_API_KEY: !!process.env.ADMIN_API_KEY,
+    hasNEXT_PUBLIC_ADMIN_API_KEY: !!process.env.NEXT_PUBLIC_ADMIN_API_KEY,
     nodeEnv: process.env.NODE_ENV,
-    adminApiKeyLength: ADMIN_API_KEY ? ADMIN_API_KEY.length : 0
+    vercelEnv: process.env.VERCEL_ENV,
+    adminApiKeyLength: ADMIN_API_KEY ? ADMIN_API_KEY.length : 0,
+    adminApiKeyValue: ADMIN_API_KEY ? `${ADMIN_API_KEY.substring(0, 3)}...` : 'empty'
   });
 
   try {
