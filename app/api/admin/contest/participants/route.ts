@@ -5,7 +5,9 @@ import { serverConfig } from '@/lib/config';
 import { logError } from '@/lib/utils/logging';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.outlivion.space';
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
+// ADMIN_API_KEY может быть как без префикса (для server-side), так и с NEXT_PUBLIC_ (для client-side)
+// На Vercel обычно используется без префикса для API routes
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
 /**
  * API Route для получения списка участников конкурса (админский endpoint)

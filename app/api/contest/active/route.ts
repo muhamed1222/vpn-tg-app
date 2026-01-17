@@ -104,8 +104,8 @@ export async function GET(request: NextRequest) {
       // Если эндпоинт не найден (404), это значит активного конкурса нет.
       // Для админов не возвращаем mock, показываем реальную ошибку
       if (backendResponse.status === 404) {
-        const isAdminPage = request.url.includes('/admin');
-        if (isAdminPage) {
+        // Проверяем, есть ли админская сессия (для админов не возвращаем mock)
+        if (hasAdminSession) {
           // Для админов возвращаем реальную ошибку
           return NextResponse.json(
             { ok: false, contest: null, error: 'No active contest found' },
