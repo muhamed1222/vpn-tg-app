@@ -142,6 +142,7 @@ export default function AdminContestPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ password }),
+        credentials: 'include' // Важно: для установки cookie
       });
 
       const data = await response.json();
@@ -149,6 +150,8 @@ export default function AdminContestPage() {
       if (data.success) {
         setIsAuthenticated(true);
         setPassword('');
+        // Перезагружаем страницу для применения cookie
+        window.location.reload();
       } else {
         setAuthError(data.error || 'Неверный пароль');
       }
