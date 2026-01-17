@@ -137,11 +137,13 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
   const handlePayClick = async () => {
     // Дополнительная проверка: если пользователь пытается купить plan_7, проверяем историю платежей
     if (planId === 'plan_7') {
+      setIsProcessing(true);
       try {
         const payments = await api.getPaymentsHistory();
         const hasPaidOrders = payments.some(p => p.status === 'success');
         
         if (hasPaidOrders) {
+          setIsProcessing(false);
           const webApp = getTelegramWebApp();
           const message = 'Пробная подписка доступна только один раз. Выберите другой тариф.';
           if (webApp) {
@@ -158,6 +160,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
           page: 'PurchaseConfirmModal',
           action: 'checkPaymentHistory'
         });
+        // Продолжаем процесс оплаты, бэкенд тоже проверит
       }
     }
 
