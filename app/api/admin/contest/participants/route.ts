@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     const adminSession = cookieStore.get('admin_session');
 
-    const initData = request.headers.get('X-Telegram-Init-Data') || 
-                     request.headers.get('Authorization');
+    const initData = request.headers.get('X-Telegram-Init-Data') ||
+      request.headers.get('Authorization');
 
     const useAdminSession = adminSession && adminSession.value;
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     }
 
     const backendResponse = await fetch(
-      `${BACKEND_API_URL}/v1/admin/contest/participants?contest_id=${contestId}`,
+      `${BACKEND_API_URL}/api/admin/contest/participants?contest_id=${contestId}`,
       {
         method: 'GET',
         headers: backendHeaders,
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
-      
+
       // Логируем детали для отладки
       console.error('[Admin API] Backend error:', {
         status: backendResponse.status,
@@ -106,14 +106,14 @@ export async function GET(request: NextRequest) {
         hasAdminApiKey: !!ADMIN_API_KEY,
         contestId
       });
-      
+
       if (backendResponse.status === 403) {
         return NextResponse.json(
           { error: 'Forbidden', message: 'Admin access required' },
           { status: 403 }
         );
       }
-      
+
       if (backendResponse.status === 401) {
         logError('Admin contest participants API 401', new Error(`Unauthorized: ${JSON.stringify(errorData)}`), {
           page: 'api',
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
           status: backendResponse.status
         });
       }
-      
+
       return NextResponse.json(
         { ok: false, participants: [], error: errorData.error || 'Failed to fetch participants' },
         { status: backendResponse.status }
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       action: 'getContestParticipants',
       endpoint: '/api/admin/contest/participants'
     });
-    
+
     return NextResponse.json(
       { ok: false, participants: [], error: 'Internal Server Error' },
       { status: 500 }

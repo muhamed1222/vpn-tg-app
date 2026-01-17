@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Проверяем админскую сессию (для доступа без Telegram)
     const cookieStore = await cookies();
     const adminSession = cookieStore.get('admin_session');
-    
+
     const initData = request.headers.get('X-Telegram-Init-Data') ||
       request.headers.get('Authorization');
 
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const backendResponse = await fetch(`${BACKEND_API_URL}/v1/contest/active`, {
+    const backendResponse = await fetch(`${BACKEND_API_URL}/api/contest/active`, {
       method: 'GET',
       headers: backendHeaders,
       next: { revalidate: 60 }, // Кешируем на 1 минуту
