@@ -6,6 +6,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/AuthProvider";
 import { IOSAuthHandler } from "@/components/IOSAuthHandler";
 import { ConsoleErrorFilter } from "@/components/ConsoleErrorFilter";
+import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 const gtWalsheimPro = localFont({
   src: "../public/fonts/GTWalsheimPro-Regular.woff",
@@ -65,12 +67,15 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <ConsoleErrorFilter />
-          <AuthProvider>
-            <IOSAuthHandler />
-            <div className="app-viewport">
-              {children}
-            </div>
-          </AuthProvider>
+          <ServiceWorkerProvider>
+            <AuthProvider>
+              <IOSAuthHandler />
+              <OfflineIndicator />
+              <div className="app-viewport">
+                {children}
+              </div>
+            </AuthProvider>
+          </ServiceWorkerProvider>
         </ErrorBoundary>
       </body>
     </html>
