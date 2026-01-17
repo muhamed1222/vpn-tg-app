@@ -62,11 +62,44 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     const session = cookieStore.get('admin_session');
 
-    if (session && session.value) {
-      return NextResponse.json({ success: true, authenticated: true });
+    if (!session || !session.value) {
+      return NextResponse.json({ success: false, authenticated: false });
     }
 
-    return NextResponse.json({ success: false, authenticated: false });
+    // Проверяем формат сессии (должна начинаться с "admin_")
+    const sessionValue = session.value;
+    try {
+      const decoded = Buffer.from(sessionValue, 'base64').toString('utf-8');
+      
+      // Проверяем, что сессия имеет правильный формат: "admin_TIMESTAMP_RANDOM"
+      if (!decoded.startsWith('admin_')) {
+        return NextResponse.json({ success: false, authenticated: false });
+      }
+
+      // Извлекаем timestamp из сессии
+      const parts = decoded.split('_');
+      if (parts.length < 2) {
+        return NextResponse.json({ success: false, authenticated: false });
+      }
+
+      const timestamp = parseInt(parts[1], 10);
+      if (isNaN(timestamp)) {
+        return NextResponse.json({ success: false, authenticated: false });
+      }
+
+      // Проверяем, что сессия не старше 24 часов (86400000 мс)
+      const now = Date.now();
+      const maxAge = 60 * 60 * 24 * 1000; // 24 часа
+      if (now - timestamp > maxAge) {
+        return NextResponse.json({ success: false, authenticated: false });
+      }
+
+      // Сессия валидна
+      return NextResponse.json({ success: true, authenticated: true });
+    } catch (decodeError) {
+      // Если не удалось декодировать - сессия невалидна
+      return NextResponse.json({ success: false, authenticated: false });
+    }
   } catch (error) {
     return NextResponse.json({ success: false, authenticated: false });
   }
