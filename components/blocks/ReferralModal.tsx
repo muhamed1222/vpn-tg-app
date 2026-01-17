@@ -36,13 +36,6 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
     isOpen,
     initialData: null,
     deps: [user?.id],
-    onError: (error) => {
-      logError('Failed to fetch referral stats', error, {
-        page: 'profile',
-        action: 'fetchReferralStats',
-        userId: user?.id
-      });
-    },
   });
 
   // Загружаем историю рефералов при открытии модалки

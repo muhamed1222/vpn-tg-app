@@ -3,7 +3,7 @@
  * Устраняет дублирование логики загрузки данных в модалках
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 interface UseModalDataOptions<T> {
   /** Функция загрузки данных */
@@ -41,24 +41,35 @@ export function useModalData<T>({
   const [data, setData] = useState<T | undefined>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  
+  // Используем ref для хранения последних версий loadData и onError,
+  // чтобы избежать бесконечного цикла при их изменении
+  const loadDataRef = useRef(loadData);
+  const onErrorRef = useRef(onError);
+  
+  // Обновляем ref при изменении loadData и onError
+  useEffect(() => {
+    loadDataRef.current = loadData;
+    onErrorRef.current = onError;
+  }, [loadData, onError]);
 
   const load = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await loadData();
+      const result = await loadDataRef.current();
       setData(result);
       return result;
     } catch (err) {
       setError(err);
-      if (onError) {
-        onError(err);
+      if (onErrorRef.current) {
+        onErrorRef.current(err);
       }
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [loadData, onError]);
+  }, []); // load теперь не зависит от loadData и onError
 
   useEffect(() => {
     if (isOpen) {
