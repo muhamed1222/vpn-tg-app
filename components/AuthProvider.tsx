@@ -17,6 +17,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useTelegramWebApp();
 
   useEffect(() => {
+    // Проверяем, не находимся ли мы на админ-странице
+    // Админ-страницы имеют свою авторизацию по паролю
+    if (typeof window !== 'undefined') {
+      const isAdminPage = window.location.pathname.startsWith('/admin');
+      if (isAdminPage) {
+        // Для админ-страниц не запускаем автоматическую авторизацию через Telegram
+        return;
+      }
+    }
+
     // Автоматическая авторизация при загрузке приложения
     const initAuth = async () => {
       try {
@@ -40,6 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Слушаем фокус окна (дополнительная страховка)
     const handleFocus = () => {
+      // Не обновляем авторизацию на админ-страницах
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+        return;
+      }
       login(true).catch(() => {});
     };
 
