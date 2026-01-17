@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     const data = await backendResponse.json();
     return NextResponse.json({
       ok: true,
-      participants: data.participants || [],
+      tickets: data.tickets || [],
     });
   } catch (error) {
     logError('Admin contest participants API error', error, {

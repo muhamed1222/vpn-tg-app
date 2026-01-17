@@ -5,27 +5,14 @@ import { ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { getTelegramInitData } from '@/lib/telegram';
 import { logError } from '@/lib/utils/logging';
 
-interface ContestParticipant {
-  referrer_id: number;
-  referrer_name: string | null;
-  referrer_username: string | null;
-  tickets_total: number;
-  invited_total: number;
-  qualified_total: number;
-  rank: number;
-  orders: Array<{
-    order_id: string;
-    payment_date: string;
-    invitee_id: number;
-    invitee_name: string | null;
-    plan_id: string;
-    months: number;
-    tickets: number;
-  }>;
+interface ContestTicket {
+  referrer_id: number; // ID участника (получатель билета)
+  referred_id: number; // ID приглашенного (или сам участник для SELF_PURCHASE)
+  order_id: string; // ID заказа
 }
 
 export default function AdminContestPage() {
-  const [participants, setParticipants] = useState<ContestParticipant[]>([]);
+  const [tickets, setTickets] = useState<ContestTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [contestId, setContestId] = useState<string | null>(null);
@@ -100,31 +87,31 @@ export default function AdminContestPage() {
         const activeContestId = contestData.contest.id;
         setContestId(activeContestId);
 
-        // Загружаем участников
-        const participantsResponse = await fetch(
+        // Загружаем билеты (развернутые)
+        const ticketsResponse = await fetch(
           `/api/admin/contest/participants?contest_id=${activeContestId}`,
           { headers }
         );
 
-        if (!participantsResponse.ok) {
-          if (participantsResponse.status === 403) {
+        if (!ticketsResponse.ok) {
+          if (ticketsResponse.status === 403) {
             setError('Доступ запрещен. Требуются права администратора.');
           } else {
-            setError('Не удалось загрузить участников');
+            setError('Не удалось загрузить билеты');
           }
           setLoading(false);
           return;
         }
 
-        const participantsData = await participantsResponse.json();
+        const ticketsData = await ticketsResponse.json();
         
-        if (!participantsData.ok) {
-          setError(participantsData.error || 'Ошибка загрузки данных');
+        if (!ticketsData.ok) {
+          setError(ticketsData.error || 'Ошибка загрузки данных');
           setLoading(false);
           return;
         }
 
-        setParticipants(participantsData.participants || []);
+        setTickets(ticketsData.tickets || []);
       } catch (err) {
         logError('Failed to load contest participants', err, {
           page: 'admin-contest',
@@ -168,7 +155,7 @@ export default function AdminContestPage() {
 
   // Функция экспорта в Excel (CSV формат)
   const exportToExcel = () => {
-    if (participants.length === 0) {
+    if (tickets.length === 0) {
       alert('Нет данных для экспорта');
       return;
     }
@@ -177,24 +164,11 @@ export default function AdminContestPage() {
     const rows: string[] = [];
     
     // Заголовки
-    rows.push('Место;ID участника;Имя участника;Username;Билетов всего;Приглашено друзей;Квалифицированных;ID заказа;Дата оплаты;ID приглашенного;Имя приглашенного;Тариф;Месяцев;Билетов');
+    rows.push('№;ID участника;Пригласил ID;Order ID');
 
-    // Данные участников
-    participants.forEach((participant) => {
-      if (participant.orders.length === 0) {
-        // Участник без заказов
-        rows.push(
-          `${participant.rank};${participant.referrer_id};${participant.referrer_name || ''};${participant.referrer_username || ''};${participant.tickets_total};${participant.invited_total};${participant.qualified_total};;;;;;;`
-        );
-      } else {
-        // Участник с заказами
-        participant.orders.forEach((order, orderIndex) => {
-          const paymentDate = new Date(order.payment_date).toLocaleDateString('ru-RU');
-          rows.push(
-            `${orderIndex === 0 ? participant.rank : ''};${orderIndex === 0 ? participant.referrer_id : ''};${orderIndex === 0 ? participant.referrer_name || '' : ''};${orderIndex === 0 ? participant.referrer_username || '' : ''};${orderIndex === 0 ? participant.tickets_total : ''};${orderIndex === 0 ? participant.invited_total : ''};${orderIndex === 0 ? participant.qualified_total : ''};${order.order_id};${paymentDate};${order.invitee_id};${order.invitee_name || ''};${order.plan_id};${order.months};${order.tickets}`
-          );
-        });
-      }
+    // Данные билетов (каждая строка = один билет)
+    tickets.forEach((ticket, index) => {
+      rows.push(`${index + 1};${ticket.referrer_id};${ticket.referred_id};${ticket.order_id}`);
     });
 
     // Создаем CSV файл
@@ -204,7 +178,7 @@ export default function AdminContestPage() {
     const url = URL.createObjectURL(blob);
     
     link.setAttribute('href', url);
-    link.setAttribute('download', `contest_participants_${contestId || 'export'}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `contest_tickets_${contestId || 'export'}_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);
@@ -214,14 +188,12 @@ export default function AdminContestPage() {
 
   // Подсчет общей статистики
   const totalStats = useMemo(() => {
+    const uniqueParticipants = new Set(tickets.map(t => t.referrer_id)).size;
     return {
-      totalParticipants: participants.length,
-      totalTickets: participants.reduce((sum, p) => sum + p.tickets_total, 0),
-      totalInvited: participants.reduce((sum, p) => sum + p.invited_total, 0),
-      totalQualified: participants.reduce((sum, p) => sum + p.qualified_total, 0),
-      totalOrders: participants.reduce((sum, p) => sum + p.orders.length, 0),
+      totalTickets: tickets.length,
+      totalParticipants: uniqueParticipants,
     };
-  }, [participants]);
+  }, [tickets]);
 
   // Форма входа
   if (isAuthenticated === false) {
@@ -293,31 +265,19 @@ export default function AdminContestPage() {
       <div className="max-w-7xl mx-auto">
         {/* Заголовок */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Участники конкурса</h1>
-          <p className="text-white/60">Админ-панель для просмотра статистики участников</p>
+          <h1 className="text-3xl font-bold mb-2">Билеты конкурса</h1>
+          <p className="text-white/60">Список всех билетов для розыгрыша (каждая строка = один билет)</p>
         </div>
 
         {/* Статистика */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-[#121212] rounded-[10px] p-4 border border-white/10">
-            <div className="text-white/60 text-sm mb-1">Участников</div>
-            <div className="text-2xl font-bold text-white">{totalStats.totalParticipants}</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-[#121212] rounded-[10px] p-4 border border-white/10">
             <div className="text-white/60 text-sm mb-1">Билетов всего</div>
             <div className="text-2xl font-bold text-white">{totalStats.totalTickets}</div>
           </div>
           <div className="bg-[#121212] rounded-[10px] p-4 border border-white/10">
-            <div className="text-white/60 text-sm mb-1">Приглашено</div>
-            <div className="text-2xl font-bold text-white">{totalStats.totalInvited}</div>
-          </div>
-          <div className="bg-[#121212] rounded-[10px] p-4 border border-white/10">
-            <div className="text-white/60 text-sm mb-1">Квалифицированных</div>
-            <div className="text-2xl font-bold text-white">{totalStats.totalQualified}</div>
-          </div>
-          <div className="bg-[#121212] rounded-[10px] p-4 border border-white/10">
-            <div className="text-white/60 text-sm mb-1">Заказов</div>
-            <div className="text-2xl font-bold text-white">{totalStats.totalOrders}</div>
+            <div className="text-white/60 text-sm mb-1">Участников</div>
+            <div className="text-2xl font-bold text-white">{totalStats.totalParticipants}</div>
           </div>
         </div>
 
@@ -325,7 +285,7 @@ export default function AdminContestPage() {
         <div className="mb-4 flex justify-end">
           <button
             onClick={exportToExcel}
-            disabled={participants.length === 0}
+            disabled={tickets.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-[#F55128] hover:bg-[#d43d1f] disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed active:scale-95 transition-all rounded-[10px] text-white font-medium"
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
@@ -333,43 +293,35 @@ export default function AdminContestPage() {
           </button>
         </div>
 
-        {/* Таблица */}
+        {/* Таблица билетов */}
         <div className="bg-[#121212] rounded-[10px] border border-white/10 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-white/5 border-b border-white/10">
                 <tr>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Место</th>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">ID</th>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Имя</th>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Username</th>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Билетов</th>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Приглашено</th>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Квалиф.</th>
-                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Заказов</th>
+                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">№</th>
+                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">ID участника</th>
+                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Пригласил ID</th>
+                  <th className="px-4 py-3 text-white/80 text-sm font-semibold">Order ID</th>
                 </tr>
               </thead>
               <tbody>
-                {participants.length === 0 ? (
+                {tickets.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-white/60">
-                      Участников пока нет
+                    <td colSpan={4} className="px-4 py-8 text-center text-white/60">
+                      Билетов пока нет
                     </td>
                   </tr>
                 ) : (
-                  participants.map((participant) => (
+                  tickets.map((ticket, index) => (
                     <tr
-                      key={participant.referrer_id}
+                      key={`${ticket.referrer_id}-${ticket.order_id}-${index}`}
                       className="border-b border-white/5 hover:bg-white/5 transition-colors"
                     >
-                      <td className="px-4 py-3 text-white font-medium">#{participant.rank}</td>
-                      <td className="px-4 py-3 text-white/80 font-mono text-sm">{participant.referrer_id}</td>
-                      <td className="px-4 py-3 text-white">{participant.referrer_name || '—'}</td>
-                      <td className="px-4 py-3 text-white/60 text-sm">@{participant.referrer_username || '—'}</td>
-                      <td className="px-4 py-3 text-white font-bold">{participant.tickets_total}</td>
-                      <td className="px-4 py-3 text-white/80">{participant.invited_total}</td>
-                      <td className="px-4 py-3 text-white/80">{participant.qualified_total}</td>
-                      <td className="px-4 py-3 text-white/80">{participant.orders.length}</td>
+                      <td className="px-4 py-3 text-white/80 font-mono text-sm">{index + 1}</td>
+                      <td className="px-4 py-3 text-white font-mono text-sm">{ticket.referrer_id}</td>
+                      <td className="px-4 py-3 text-white/80 font-mono text-sm">{ticket.referred_id}</td>
+                      <td className="px-4 py-3 text-white/60 font-mono text-xs">{ticket.order_id}</td>
                     </tr>
                   ))
                 )}
@@ -377,57 +329,6 @@ export default function AdminContestPage() {
             </table>
           </div>
         </div>
-
-        {/* Детали заказов (раскрывающийся список) */}
-        {participants.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xl font-bold mb-4">Детали заказов</h2>
-            <div className="space-y-4">
-              {participants.map((participant) => (
-                participant.orders.length > 0 && (
-                  <div key={participant.referrer_id} className="bg-[#121212] rounded-[10px] p-4 border border-white/10">
-                    <div className="mb-2">
-                      <span className="text-white/60 text-sm">Участник:</span>{' '}
-                      <span className="text-white font-medium">
-                        {participant.referrer_name || `ID: ${participant.referrer_id}`}
-                      </span>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-white/5 border-b border-white/10">
-                          <tr>
-                            <th className="px-3 py-2 text-white/80 font-semibold">ID заказа</th>
-                            <th className="px-3 py-2 text-white/80 font-semibold">Дата оплаты</th>
-                            <th className="px-3 py-2 text-white/80 font-semibold">ID приглашенного</th>
-                            <th className="px-3 py-2 text-white/80 font-semibold">Имя</th>
-                            <th className="px-3 py-2 text-white/80 font-semibold">Тариф</th>
-                            <th className="px-3 py-2 text-white/80 font-semibold">Месяцев</th>
-                            <th className="px-3 py-2 text-white/80 font-semibold">Билетов</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {participant.orders.map((order) => (
-                            <tr key={order.order_id} className="border-b border-white/5">
-                              <td className="px-3 py-2 text-white/80 font-mono text-xs">{order.order_id}</td>
-                              <td className="px-3 py-2 text-white/80">
-                                {new Date(order.payment_date).toLocaleDateString('ru-RU')}
-                              </td>
-                              <td className="px-3 py-2 text-white/80 font-mono text-xs">{order.invitee_id}</td>
-                              <td className="px-3 py-2 text-white/80">{order.invitee_name || '—'}</td>
-                              <td className="px-3 py-2 text-white/80">{order.plan_id}</td>
-                              <td className="px-3 py-2 text-white/80">{order.months}</td>
-                              <td className="px-3 py-2 text-white font-bold">{order.tickets}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
