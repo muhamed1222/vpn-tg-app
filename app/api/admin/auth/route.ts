@@ -28,9 +28,11 @@ export async function POST(request: NextRequest) {
       const response = NextResponse.json({ success: true });
       
       // Сохраняем сессию в cookie
+      // В production на Vercel всегда используем secure: true (HTTPS)
+      const isProduction = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
       response.cookies.set('admin_session', sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProduction, // true для production (HTTPS), false для localhost
         sameSite: 'lax',
         maxAge: 60 * 60 * 24, // 24 часа
         path: '/',
