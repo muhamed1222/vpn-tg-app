@@ -5,6 +5,7 @@ import { serverConfig } from '@/lib/config';
 import { logError } from '@/lib/utils/logging';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.outlivion.space';
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
 /**
  * API Route для получения активного конкурса
@@ -64,10 +65,18 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     };
 
-    // Если есть админская сессия, отправляем без Authorization (бэкенд может работать без него для активного конкурса)
+    // Если есть админская сессия, используем ADMIN_API_KEY
     // Иначе отправляем Telegram initData
-    if (!hasAdminSession && initData) {
+    if (hasAdminSession && ADMIN_API_KEY) {
+      backendHeaders['x-admin-api-key'] = ADMIN_API_KEY;
+    } else if (initData) {
       backendHeaders['Authorization'] = initData;
+    } else if (!hasAdminSession) {
+      // Нет ни сессии, ни initData - возвращаем ошибку
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const backendResponse = await fetch(`${BACKEND_API_URL}/v1/contest/active`, {
