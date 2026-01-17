@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { triggerHaptic, getTelegramWebApp, getTelegramInitData } from '@/lib/telegram';
 import { handleComponentError } from '@/lib/utils/errorHandler';
 import { ContestSummary, ReferralFriend, TicketHistoryEntry, Contest } from '@/types/contest';
-import ContestCountdownScreen from '@/components/blocks/ContestCountdownScreen';
 
-// Lazy loading для остальных компонентов
+// Lazy loading для всех тяжелых компонентов
+const ContestCountdownScreen = lazy(() =>
+  import('@/components/blocks/ContestCountdownScreen')
+);
 const ContestSummaryCard = lazy(() =>
   import('@/components/blocks/ContestSummaryCard')
 );
@@ -324,10 +326,12 @@ export default function ContestPage() {
   if (shouldShowCountdown) {
     return (
       <div className="w-full text-white pt-[calc(100px+env(safe-area-inset-top))] pl-4 pr-4 font-sans select-none flex flex-col min-h-screen transition-all duration-300">
-        <ContestCountdownScreen
-          contestTitle={summary.contest.title}
-          startsAt={summary.contest.starts_at}
-        />
+        <Suspense fallback={<div className="h-screen bg-white/5 rounded-2xl animate-pulse" />}>
+          <ContestCountdownScreen
+            contestTitle={summary.contest.title}
+            startsAt={summary.contest.starts_at}
+          />
+        </Suspense>
       </div>
     );
   }

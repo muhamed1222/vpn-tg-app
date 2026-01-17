@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, lazy, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
 import { InfoModal } from '@/components/blocks/InfoModal';
 import { config } from '@/lib/config';
-import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { handleExternalLink } from '@/lib/utils/setupHelpers';
 import { analytics } from '@/lib/analytics';
 import { useSetupState } from '@/hooks/useSetupState';
@@ -13,6 +12,13 @@ import { useSubscriptionSetup } from '@/hooks/useSubscriptionSetup';
 import { useAppInstall } from '@/hooks/useAppInstall';
 import { usePlatform } from '@/hooks/usePlatform';
 import { STEP_ANIMATION_VARIANTS } from '@/lib/utils/setupConstants';
+
+// Lazy loading для тяжелого компонента с анимациями
+const AnimatedBackground = lazy(() =>
+  import('@/components/ui/AnimatedBackground').then(module => ({
+    default: module.AnimatedBackground
+  }))
+);
 
 // Dynamic imports for code splitting - only load steps when needed
 const Step1Welcome = dynamic(() => import('./steps/Step1Welcome').then(m => ({ default: m.Step1Welcome })), { ssr: false });
@@ -108,7 +114,9 @@ export default function SetupPage() {
 
   return (
     <main className="w-full bg-black text-white pt-[calc(100px+env(safe-area-inset-top))] px-[calc(1rem+env(safe-area-inset-left))] font-sans select-none flex flex-col min-h-screen">
-      <AnimatedBackground />
+      <Suspense fallback={null}>
+        <AnimatedBackground />
+      </Suspense>
 
       <div className="relative flex-1 flex flex-col z-10 overflow-hidden">
         {/* Индикатор прогресса */}

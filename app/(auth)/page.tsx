@@ -6,13 +6,23 @@ import Link from 'next/link';
 import { triggerHaptic } from '@/lib/telegram';
 import { useSubscriptionStore } from '@/store/subscription.store';
 import { LogoIcon } from '@/components/ui/LogoIcon';
-import { BackgroundCircles } from '@/components/ui/BackgroundCircles';
 import { isOnline, subscribeToOnlineStatus } from '@/lib/telegram-fallback';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
-import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { formatExpirationDate } from '@/lib/utils/date';
 import { usePlatform } from '@/hooks/usePlatform';
 import { useMinPrice } from '@/hooks/useMinPrice';
+
+// Lazy loading для тяжелых компонентов с анимациями
+const AnimatedBackground = lazy(() =>
+  import('@/components/ui/AnimatedBackground').then(module => ({
+    default: module.AnimatedBackground
+  }))
+);
+const BackgroundCircles = lazy(() =>
+  import('@/components/ui/BackgroundCircles').then(module => ({
+    default: module.BackgroundCircles
+  }))
+);
 
 // Lazy loading для модалок - загружаются только когда нужны
 const SupportModal = lazy(() =>
@@ -75,16 +85,24 @@ export default function Home() {
       role="main"
       aria-label="Главная страница Outlivion VPN"
     >
-      <AnimatedBackground />
+      <Suspense fallback={null}>
+        <AnimatedBackground />
+      </Suspense>
 
       {/* Logo Section */}
       <div className="relative w-full h-fit flex items-center justify-center z-10">
-        {/* Background Circles - оптимизированный компонент */}
-        <BackgroundCircles>
+        {/* Background Circles - lazy loaded компонент */}
+        <Suspense fallback={
           <div className="relative w-32 h-32 flex items-center justify-center">
             <LogoIcon className="w-full h-full" />
           </div>
-        </BackgroundCircles>
+        }>
+          <BackgroundCircles>
+            <div className="relative w-32 h-32 flex items-center justify-center">
+              <LogoIcon className="w-full h-full" />
+            </div>
+          </BackgroundCircles>
+        </Suspense>
       </div>
 
       {/* Розыгрыш Баннер */}

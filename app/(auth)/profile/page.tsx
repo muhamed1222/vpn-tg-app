@@ -14,11 +14,15 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useUserStore } from '@/store/user.store';
-import { VpnConnectionCard } from '@/components/blocks/VpnConnectionCard';
 import { getTelegramWebApp } from '@/lib/telegram';
 import { config } from '@/lib/config';
 import { handleComponentError } from '@/lib/utils/errorHandler';
 import { copyToClipboard } from '@/lib/utils/clipboard';
+
+// Lazy loading для тяжелых компонентов - загружаются только когда нужны
+const VpnConnectionCard = lazy(() => 
+  import('@/components/blocks/VpnConnectionCard').then(m => ({ default: m.VpnConnectionCard }))
+);
 
 // Lazy loading для модалок - загружаются только когда открыты
 const TransactionsModal = lazy(() => 
@@ -169,9 +173,11 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* VPN Connection Card */}
+      {/* VPN Connection Card - Lazy loaded */}
       <div className="mb-6">
-        <VpnConnectionCard />
+        <Suspense fallback={<div className="bg-[#121212] rounded-[16px] p-5 border border-white/5 h-48 animate-pulse" />}>
+          <VpnConnectionCard />
+        </Suspense>
       </div>
 
       {/* Action Buttons */}
