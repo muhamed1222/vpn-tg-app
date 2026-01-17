@@ -66,9 +66,15 @@ export async function GET(request: NextRequest) {
     if (useAdminSession) {
       if (ADMIN_API_KEY) {
         backendHeaders['x-admin-api-key'] = ADMIN_API_KEY;
+        console.log('[Admin API] Using admin session with API key');
       } else {
         // Если ADMIN_API_KEY не установлен, логируем предупреждение
         console.warn('[Admin API] ADMIN_API_KEY not configured, request may fail');
+        logError('ADMIN_API_KEY missing', new Error('ADMIN_API_KEY not set'), {
+          page: 'api',
+          action: 'getContestParticipants',
+          hasAdminSession: !!useAdminSession
+        });
       }
     } else if (initData) {
       // Иначе отправляем Telegram initData
@@ -92,6 +98,15 @@ export async function GET(request: NextRequest) {
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
       
+      // Логируем детали для отладки
+      console.error('[Admin API] Backend error:', {
+        status: backendResponse.status,
+        error: errorData,
+        hasAdminSession: !!useAdminSession,
+        hasAdminApiKey: !!ADMIN_API_KEY,
+        contestId
+      });
+      
       if (backendResponse.status === 403) {
         return NextResponse.json(
           { error: 'Forbidden', message: 'Admin access required' },
@@ -99,12 +114,23 @@ export async function GET(request: NextRequest) {
         );
       }
       
-      logError('Admin contest participants API error', new Error(`Backend returned ${backendResponse.status}`), {
-        page: 'api',
-        action: 'getContestParticipants',
-        endpoint: '/api/admin/contest/participants',
-        status: backendResponse.status
-      });
+      if (backendResponse.status === 401) {
+        logError('Admin contest participants API 401', new Error(`Unauthorized: ${JSON.stringify(errorData)}`), {
+          page: 'api',
+          action: 'getContestParticipants',
+          endpoint: '/api/admin/contest/participants',
+          status: backendResponse.status,
+          hasAdminSession: !!useAdminSession,
+          hasAdminApiKey: !!ADMIN_API_KEY
+        });
+      } else {
+        logError('Admin contest participants API error', new Error(`Backend returned ${backendResponse.status}`), {
+          page: 'api',
+          action: 'getContestParticipants',
+          endpoint: '/api/admin/contest/participants',
+          status: backendResponse.status
+        });
+      }
       
       return NextResponse.json(
         { ok: false, participants: [], error: errorData.error || 'Failed to fetch participants' },
