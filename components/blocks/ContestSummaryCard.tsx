@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ContestSummary } from '@/types/contest';
 import CountdownTimer from './CountdownTimer';
 
@@ -15,19 +15,6 @@ interface ContestSummaryCardProps {
 export default function ContestSummaryCard({ 
   summary
 }: ContestSummaryCardProps) {
-  // Вычисляем позицию в топе и другие метрики
-  const { totalParticipants, percentile } = useMemo(() => {
-    // TODO: Получить реальную позицию из API (когда будет реализован эндпоинт)
-    const topPosition = summary.rank || null; // Будет приходить из API
-    const totalParticipants = summary.total_participants || null; // Будет приходить из API
-    
-    // Процент участников, которых пользователь обогнал
-    const percentile = topPosition && totalParticipants 
-      ? Math.round((1 - topPosition / totalParticipants) * 100)
-      : null;
-    
-    return { totalParticipants, percentile };
-  }, [summary.rank, summary.total_participants]);
 
   return (
     <div className="bg-gradient-to-br from-[#F55128] via-[#FF6B3D] to-[#FF8A65] rounded-[10px] p-3.5 mb-6 border border-white/20 backdrop-blur-[12px] relative z-10 shadow-2xl">
@@ -56,12 +43,7 @@ export default function ContestSummaryCard({
             </div>
             <div className="text-white/90 text-sm font-medium">Билетов</div>
             <div className="text-white/60 text-xs mt-1">
-              {percentile !== null && totalParticipants && totalParticipants > 0 
-                ? `Лучше ${percentile}%` 
-                : summary.tickets_total > 0 
-                  ? 'В рейтинге' 
-                  : '—'
-              }
+              {summary.tickets_total > 0 ? 'В рейтинге' : '—'}
             </div>
           </div>
           

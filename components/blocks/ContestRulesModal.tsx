@@ -1,9 +1,21 @@
 'use client';
 
-import React from 'react';
-import { Contest } from '@/types/contest';
+import React, { useMemo } from 'react';
+import { Contest, ContestPrize } from '@/types/contest';
 import { BottomSheet } from '../ui/BottomSheet';
 import { formatDateFull } from '@/lib/utils/date';
+
+/**
+ * Дефолтные призы для обратной совместимости (если не указаны в API)
+ */
+const DEFAULT_PRIZES: ContestPrize[] = [
+  { icon: '🥇', name: 'iPhone 17 Pro 256 GB' },
+  { icon: '🥈', name: 'Galaxy Watch Ultra 47 LTE' },
+  { icon: '🥉', name: 'AirPods 4' },
+  { icon: '✨', name: 'Яндекс Станция Миди' },
+  { icon: '✨', name: 'Яндекс Станция Стрит' },
+  { icon: '✨', name: '1 год подписки Outlivion', position: '6–10 места' },
+];
 
 /**
  * Компонент модального окна с правилами конкурса
@@ -11,6 +23,11 @@ import { formatDateFull } from '@/lib/utils/date';
 export default function ContestRulesModal({ isOpen, onClose, contest }: { isOpen: boolean; onClose: () => void; contest: Contest }) {
   const startDate = formatDateFull(contest.starts_at);
   const endDate = formatDateFull(contest.ends_at);
+
+  // Используем призы из contest.prizes, если есть, иначе дефолтные
+  const prizes = useMemo(() => {
+    return contest.prizes && contest.prizes.length > 0 ? contest.prizes : DEFAULT_PRIZES;
+  }, [contest.prizes]);
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Правила конкурса">
@@ -22,30 +39,17 @@ export default function ContestRulesModal({ isOpen, onClose, contest }: { isOpen
             Призы конкурса
           </h3>
           <div className="space-y-2 text-white/70 text-sm">
-            <p className="flex items-start gap-2">
-              <span className="text-white font-bold">🥇</span>
-              <span><span className="text-white font-medium">iPhone 17 Pro 256 GB</span></span>
-            </p>
-            <p className="flex items-start gap-2">
-              <span className="text-white font-bold">🥈</span>
-              <span><span className="text-white font-medium">Galaxy Watch Ultra 47 LTE</span></span>
-            </p>
-            <p className="flex items-start gap-2">
-              <span className="text-white font-bold">🥉</span>
-              <span><span className="text-white font-medium">AirPods 4</span></span>
-            </p>
-            <p className="flex items-start gap-2">
-              <span className="text-white font-bold">✨</span>
-              <span><span className="text-white font-medium">Яндекс Станция Миди</span></span>
-            </p>
-            <p className="flex items-start gap-2">
-              <span className="text-white font-bold">✨</span>
-              <span><span className="text-white font-medium">Яндекс Станция Стрит</span></span>
-            </p>
-            <p className="flex items-start gap-2">
-              <span className="text-white font-bold">✨</span>
-              <span><span className="text-white font-medium">6–10 места:</span> 1 год подписки Outlivion</span>
-            </p>
+            {prizes.map((prize, index) => (
+              <p key={index} className="flex items-start gap-2">
+                <span className="text-white font-bold">{prize.icon}</span>
+                <span>
+                  {prize.position && (
+                    <span className="text-white font-medium">{prize.position}: </span>
+                  )}
+                  <span className="text-white font-medium">{prize.name}</span>
+                </span>
+              </p>
+            ))}
           </div>
         </div>
 

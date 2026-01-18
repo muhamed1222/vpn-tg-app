@@ -2,6 +2,12 @@
  * Типы для системы конкурсов и розыгрышей
  */
 
+export interface ContestPrize {
+  icon: string; // Эмодзи иконки (🥇, 🥈, 🥉, ✨)
+  name: string; // Название приза
+  position?: string; // Позиция (например, "6–10 места")
+}
+
 export interface Contest {
   id: string;
   title: string;
@@ -10,6 +16,7 @@ export interface Contest {
   attribution_window_days: number;
   rules_version: string;
   is_active: boolean;
+  prizes?: ContestPrize[]; // Опциональный массив призов (для обратной совместимости)
 }
 
 export interface RefEvent {
@@ -63,8 +70,6 @@ export interface ContestSummary {
   invited_total: number;
   qualified_total: number;
   pending_total: number;
-  rank?: number | null; // Позиция в рейтинге (1 = первое место)
-  total_participants?: number | null; // Общее количество участников
 }
 
 export interface TicketHistoryEntry {
