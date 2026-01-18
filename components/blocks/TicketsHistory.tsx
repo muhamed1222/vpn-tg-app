@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Link from 'next/link';
 import { TicketHistoryEntry } from '@/types/contest';
 import { PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
 import { formatDateWithTime } from '@/lib/utils/date';
@@ -82,6 +83,17 @@ export default function TicketsHistory({ tickets, onShowAll }: TicketsHistoryPro
           Показать все ({tickets.length})
         </button>
       )}
+      
+      {/* Кнопка диагностики конкурса */}
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <Link
+          href="/debug/contest"
+          className="w-full bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-2 border-blue-500/30 hover:border-blue-500/50 hover:from-blue-600/30 hover:to-purple-600/30 active:scale-[0.98] transition-all rounded-[10px] py-3 px-4 text-white font-medium flex items-center justify-center gap-2 shadow-lg"
+        >
+          <span className="text-xl">🔍</span>
+          <span>Диагностика конкурса</span>
+        </Link>
+      </div>
     </div>
   );
 };

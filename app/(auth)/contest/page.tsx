@@ -365,13 +365,14 @@ export default function ContestPage() {
         <TicketsHistory tickets={tickets} />
       </Suspense>
 
-      <div className="mb-6 relative z-10">
+      {/* Кнопка диагностики конкурса */}
+      <div className="mb-4 relative z-10">
         <Link
           href="/debug/contest"
           onClick={() => triggerHaptic('light')}
-          className="w-full bg-white/5 border border-white/10 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[10px] py-3 px-4 text-white/80 font-medium flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-2 border-blue-500/30 hover:border-blue-500/50 hover:from-blue-600/30 hover:to-purple-600/30 active:scale-[0.98] transition-all rounded-[10px] py-3 px-4 text-white font-medium flex items-center justify-center gap-2 shadow-lg"
         >
-          <span className="text-lg">🔍</span>
+          <span className="text-xl">🔍</span>
           <span>Диагностика конкурса</span>
         </Link>
       </div>
