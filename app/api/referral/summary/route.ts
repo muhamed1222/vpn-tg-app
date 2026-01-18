@@ -39,14 +39,32 @@ export async function GET(request: NextRequest) {
     const data = await response.json().catch(() => ({}));
     return NextResponse.json(
       { ok: false, summary: null, error: data.error || 'Не удалось загрузить данные. Попробуйте позже.' },
-      { status: response.status }
+      { 
+        status: response.status,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
     );
   }
 
   // Парсим успешный ответ и нормализуем формат
   const data = await response.json().catch(() => ({}));
-  return NextResponse.json({
-    ok: true,
-    summary: data.summary || null,
-  });
+  return new NextResponse(
+    JSON.stringify({
+      ok: true,
+      summary: data.summary || null,
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    }
+  );
 }

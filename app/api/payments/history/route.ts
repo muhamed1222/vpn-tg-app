@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Проксируем запрос на бэкенд API
-  return proxyGet(request, '/v1/payments/history', {
+  const response = await proxyGet(request, '/v1/payments/history', {
     requireAuth: true,
     logContext: {
       page: 'api',
@@ -23,5 +23,21 @@ export async function GET(request: NextRequest) {
       endpoint: '/api/payments/history',
     },
   });
+
+  // Добавляем запрет кеширования
+  if (response.ok) {
+    const data = await response.json();
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
+  }
+
+  return response;
 }
 

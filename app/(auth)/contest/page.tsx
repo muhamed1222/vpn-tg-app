@@ -56,7 +56,7 @@ export default function ContestPage() {
       }
 
       // Сначала получаем активный конкурс
-      const activeContestResponse = await fetch('/api/contest/active', { headers }).catch(() => {
+      const activeContestResponse = await fetch('/api/contest/active', { headers, cache: 'no-store' }).catch(() => {
         // Ошибка сети - не критично, просто вернем null
         return null;
       });
@@ -110,9 +110,9 @@ export default function ContestPage() {
 
       // Если конкурс активен, загружаем дополнительные данные
       const [summaryResponse, friendsResponse, ticketsResponse] = await Promise.all([
-        fetch(`/api/referral/summary?contest_id=${contestId}`, { headers }).catch(() => null),
-        fetch(`/api/referral/friends?contest_id=${contestId}&limit=50`, { headers }).catch(() => null),
-        fetch(`/api/referral/tickets?contest_id=${contestId}&limit=20`, { headers }).catch(() => null),
+        fetch(`/api/referral/summary?contest_id=${contestId}`, { headers, cache: 'no-store' }).catch(() => null),
+        fetch(`/api/referral/friends?contest_id=${contestId}&limit=50`, { headers, cache: 'no-store' }).catch(() => null),
+        fetch(`/api/referral/tickets?contest_id=${contestId}&limit=20`, { headers, cache: 'no-store' }).catch(() => null),
       ]);
 
       // Обрабатываем ответы

@@ -40,14 +40,32 @@ export async function GET(request: NextRequest) {
     const data = await response.json().catch(() => ({}));
     return NextResponse.json(
       { ok: false, friends: [], error: data.error || 'Не удалось загрузить список друзей. Попробуйте позже.' },
-      { status: response.status }
+      { 
+        status: response.status,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
     );
   }
 
   // Парсим успешный ответ и нормализуем формат
   const data = await response.json().catch(() => ({}));
-  return NextResponse.json({
-    ok: true,
-    friends: data.friends || [],
-  });
+  return new NextResponse(
+    JSON.stringify({
+      ok: true,
+      friends: data.friends || [],
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    }
+  );
 }

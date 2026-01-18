@@ -74,32 +74,59 @@ export async function GET(request: NextRequest) {
             contest: null, 
             error: 'No active contest found (contest may not have started yet)' 
           },
-          { status: 404 }
+          { 
+            status: 404,
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+            },
+          }
         );
       }
       
       // Для обычных пользователей возвращаем mock для отображения таймера
-      return NextResponse.json({
-        ok: true,
-        contest: {
-          id: 'upcoming-contest-mock',
-          title: 'Розыгрыш призов Outlivion',
-          starts_at: '2026-01-20T00:00:00Z',
-          ends_at: '2026-01-27T00:00:00Z',
-          attribution_window_days: 7,
-          rules_version: '1.0',
-          is_active: false
+      return NextResponse.json(
+        {
+          ok: true,
+          contest: {
+            id: 'upcoming-contest-mock',
+            title: 'Розыгрыш призов Outlivion',
+            starts_at: '2026-01-20T00:00:00Z',
+            ends_at: '2026-01-27T00:00:00Z',
+            attribution_window_days: 7,
+            rules_version: '1.0',
+            is_active: false
+          }
+        },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
         }
-      });
+      );
     }
 
     // Если успешный ответ, форматируем данные
     if (response.ok) {
       const data = await response.json();
-      return NextResponse.json({
-        ok: true,
-        contest: data.contest || null,
-      });
+      return new NextResponse(
+        JSON.stringify({
+          ok: true,
+          contest: data.contest || null,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        }
+      );
     }
 
     // Остальные ошибки возвращаем как есть
