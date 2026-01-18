@@ -5,6 +5,8 @@ import { api } from '@/lib/api';
 import { useUserStore } from '@/store/user.store';
 import { logError } from '@/lib/utils/logging';
 
+import { TicketHistoryEntry } from '@/types/contest';
+
 interface ContestDebugInfo {
   contest: {
     id: string;
@@ -13,24 +15,23 @@ interface ContestDebugInfo {
     ends_at: string;
     is_active: boolean;
   } | null;
-  tickets: Array<{
-    id: string;
-    delta: number;
-    reason: string;
-    created_at: string;
-    order_id?: string;
-  }>;
+  tickets: TicketHistoryEntry[];
   payments: Array<{
     id: string;
-    order_id: string;
-    plan_id: string;
+    orderId: string;
+    planId: string;
     status: string;
     amount: number;
-    created_at: string;
+    currency: string;
+    date: number;
+    planName: string;
   }>;
   userStatus: {
+    ok: boolean;
     status: string;
-    expiresAt: string | null;
+    expiresAt: number | null;
+    usedTraffic: number;
+    dataLimit: number;
   } | null;
 }
 
@@ -138,11 +139,11 @@ export default function ContestDebugPage() {
             <h2 className="text-xl font-semibold mb-2">Пользователь</h2>
             <div className="space-y-1 text-sm">
               <p><span className="text-gray-400">ID:</span> {user?.id || 'Не определен'}</p>
-              {userStatus && (
+              {data?.userStatus && (
                 <>
-                  <p><span className="text-gray-400">Статус подписки:</span> {userStatus.status}</p>
-                  {userStatus.expiresAt && (
-                    <p><span className="text-gray-400">Истекает:</span> {new Date(userStatus.expiresAt).toLocaleString('ru-RU')}</p>
+                  <p><span className="text-gray-400">Статус подписки:</span> {data.userStatus.status}</p>
+                  {data.userStatus.expiresAt && (
+                    <p><span className="text-gray-400">Истекает:</span> {new Date(data.userStatus.expiresAt).toLocaleString('ru-RU')}</p>
                   )}
                 </>
               )}
@@ -186,9 +187,9 @@ export default function ContestDebugPage() {
                       <div className="text-sm space-y-1">
                         <p><span className="text-gray-400">ID:</span> {ticket.id}</p>
                         <p><span className="text-gray-400">Количество:</span> {ticket.delta > 0 ? '+' : ''}{ticket.delta}</p>
-                        <p><span className="text-gray-400">Причина:</span> {ticket.reason}</p>
-                        {ticket.order_id && (
-                          <p><span className="text-gray-400">Заказ:</span> {ticket.order_id}</p>
+                        <p><span className="text-gray-400">Описание:</span> {ticket.label}</p>
+                        {ticket.invitee_name && (
+                          <p><span className="text-gray-400">Приглашенный:</span> {ticket.invitee_name}</p>
                         )}
                         <p><span className="text-gray-400">Создан:</span> {new Date(ticket.created_at).toLocaleString('ru-RU')}</p>
                       </div>
@@ -216,16 +217,16 @@ export default function ContestDebugPage() {
                 {data.payments.map((payment) => (
                   <div key={payment.id} className="p-2 bg-gray-800 rounded border border-gray-700">
                     <div className="text-sm space-y-1">
-                      <p><span className="text-gray-400">Заказ ID:</span> {payment.order_id}</p>
-                      <p><span className="text-gray-400">План:</span> {payment.plan_id}</p>
+                      <p><span className="text-gray-400">Заказ ID:</span> {payment.orderId}</p>
+                      <p><span className="text-gray-400">План:</span> {payment.planId} ({payment.planName})</p>
                       <p>
                         <span className="text-gray-400">Статус:</span>{' '}
-                        <span className={payment.status === 'success' || payment.status === 'completed' ? 'text-green-400' : 'text-yellow-400'}>
+                        <span className={payment.status === 'success' || payment.status === 'completed' || payment.status === 'paid' ? 'text-green-400' : 'text-yellow-400'}>
                           {payment.status}
                         </span>
                       </p>
-                      <p><span className="text-gray-400">Сумма:</span> {payment.amount}</p>
-                      <p><span className="text-gray-400">Создан:</span> {new Date(payment.created_at).toLocaleString('ru-RU')}</p>
+                      <p><span className="text-gray-400">Сумма:</span> {payment.amount} {payment.currency}</p>
+                      <p><span className="text-gray-400">Дата:</span> {new Date(payment.date).toLocaleString('ru-RU')}</p>
                     </div>
                   </div>
                 ))}
@@ -249,12 +250,12 @@ export default function ContestDebugPage() {
                   <p className="text-blue-400">
                     ℹ️ Найдено {data.payments.length} платеж(ей)
                   </p>
-                  {data.payments.some(p => p.status === 'success' || p.status === 'completed') && (
+                  {data.payments.some(p => p.status === 'success' || p.status === 'completed' || p.status === 'paid') && (
                     <p className="text-green-400 mt-1">
                       ✅ Есть успешные платежи - билеты должны быть начислены
                     </p>
                   )}
-                  {!data.payments.some(p => p.status === 'success' || p.status === 'completed') && (
+                  {!data.payments.some(p => p.status === 'success' || p.status === 'completed' || p.status === 'paid') && (
                     <p className="text-yellow-400 mt-1">
                       ⚠️ Нет успешных платежей - билеты не могут быть начислены
                     </p>
