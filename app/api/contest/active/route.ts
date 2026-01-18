@@ -6,6 +6,10 @@ import { CACHE_CONFIG } from '@/lib/constants';
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.ADM || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
+// Отключаем кеширование на уровне Next.js и Vercel
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * API Route для получения активного конкурса
  */

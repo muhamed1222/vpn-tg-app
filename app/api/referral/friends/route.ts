@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { proxyGet } from '@/lib/utils/api-proxy';
 import { validateApiRequest } from '@/lib/utils/api-validation';
 
+// Отключаем кеширование на уровне Next.js и Vercel
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * API Route для получения списка друзей в конкурсе
  */
