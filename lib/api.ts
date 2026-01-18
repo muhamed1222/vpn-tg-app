@@ -5,6 +5,8 @@ import { logWarn } from './utils/logging';
 import { handleApiError } from './utils/errorHandler';
 import { getHttpStatusMessage } from './utils/user-messages';
 import { API_TIMEOUTS } from './constants';
+import { validateData } from './validation/validator';
+import * as schemas from './validation/schemas';
 
 export interface ApiError {
   error: string;
@@ -221,10 +223,13 @@ export const api = {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     const configData = await cachedFetch(
       'user_config',
-      () => apiFetch<{
-        ok: boolean;
-        config: string | null;
-      }>('user/config', { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>('user/config', { method: 'GET' });
+        return validateData(schemas.UserConfigSchema, data, {
+          endpoint: 'user/config',
+          action: 'getUserConfig',
+        });
+      },
       API_TIMEOUTS.GET_USER_CONFIG
     );
 
@@ -242,31 +247,32 @@ export const api = {
       async () => {
         // Параллельно получаем статус и billing
         const [statusData, billing] = await Promise.all([
-          apiFetch<{
-            ok: boolean;
-            status: string;
-            expiresAt: number | null;
-            usedTraffic: number;
-            dataLimit: number;
-          }>('user/status', { method: 'GET' }),
-          apiFetch<{
-            usedBytes: number;
-            limitBytes: number | null;
-            averagePerDayBytes: number;
-            planId: string | null;
-            planName: string | null;
-            period: {
-              start: number | null;
-              end: number | null;
-            };
-          }>('user/billing', { method: 'GET' }).catch(() => ({
-            usedBytes: 0,
-            limitBytes: null,
-            averagePerDayBytes: 0,
-            planId: null,
-            planName: null,
-            period: { start: null, end: null },
-          })),
+          (async () => {
+            const data = await apiFetch<unknown>('user/status', { method: 'GET' });
+            return validateData(schemas.UserStatusResponseSchema, data, {
+              endpoint: 'user/status',
+              action: 'getUserStatus',
+            });
+          })(),
+          (async () => {
+            try {
+              const data = await apiFetch<unknown>('user/billing', { method: 'GET' });
+              return validateData(schemas.BillingDataSchema, data, {
+                endpoint: 'user/billing',
+                action: 'getUserStatus',
+              });
+            } catch {
+              // Если ошибка, возвращаем значения по умолчанию
+              return {
+                usedBytes: 0,
+                limitBytes: null,
+                averagePerDayBytes: 0,
+                planId: null,
+                planName: null,
+                period: { start: null, end: null },
+              } as schemas.BillingData;
+            }
+          })(),
         ]);
 
         const isActive = statusData.status === 'active';
@@ -288,16 +294,13 @@ export const api = {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       'payments_history',
-      () => apiFetch<Array<{
-        id: string;
-        orderId: string;
-        amount: number;
-        currency: string;
-        date: number;
-        status: 'success' | 'pending' | 'fail';
-        planId: string;
-        planName: string;
-      }>>('payments/history', { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>('payments/history', { method: 'GET' });
+        return validateData(schemas.TransactionsResponseSchema, data, {
+          endpoint: 'payments/history',
+          action: 'getPaymentsHistory',
+        });
+      },
       API_TIMEOUTS.GET_PAYMENTS_HISTORY
     );
   },
@@ -322,12 +325,13 @@ export const api = {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       'referral_stats',
-      () => apiFetch<{
-        totalCount: number;
-        trialCount: number;
-        premiumCount: number;
-        referralCode: string;
-      }>('user/referrals', { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>('user/referrals', { method: 'GET' });
+        return validateData(schemas.ReferralStatsSchema, data, {
+          endpoint: 'user/referrals',
+          action: 'getReferralStats',
+        });
+      },
       API_TIMEOUTS.GET_REFERRAL_STATS
     );
   },
@@ -343,48 +347,56 @@ export const api = {
   }),
 
   // Проверка статуса оплаты и активация подписки
-  checkPaymentSuccess: (orderId: string) => apiFetch<{
-    status: 'completed' | 'pending';
-    vless_key?: string;
-    expires_at?: number;
-    message?: string;
-  }>('payment/success', {
-    method: 'POST',
-    body: JSON.stringify({ order_id: orderId })
-  }),
+  checkPaymentSuccess: async (orderId: string) => {
+    const data = await apiFetch<unknown>('payment/success', {
+      method: 'POST',
+      body: JSON.stringify({ order_id: orderId })
+    });
+    return validateData(schemas.PaymentSuccessResponseSchema, data, {
+      endpoint: 'payment/success',
+      action: 'checkPaymentSuccess',
+    });
+  },
 
   // Автопродление (с кэшированием на 1 минуту)
   getAutorenewal: async () => {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       'autorenewal',
-      () => apiFetch<{
-        enabled: boolean;
-      }>('user/autorenewal', { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>('user/autorenewal', { method: 'GET' });
+        return validateData(schemas.AutorenewalResponseSchema, data, {
+          endpoint: 'user/autorenewal',
+          action: 'getAutorenewal',
+        });
+      },
       API_TIMEOUTS.GET_AUTORENEWAL
     );
   },
 
-  updateAutorenewal: (enabled: boolean) => apiFetch<{
-    enabled: boolean;
-  }>('user/autorenewal', {
-    method: 'POST',
-    body: JSON.stringify({ enabled })
-  }),
+  updateAutorenewal: async (enabled: boolean) => {
+    const data = await apiFetch<unknown>('user/autorenewal', {
+      method: 'POST',
+      body: JSON.stringify({ enabled })
+    });
+    return validateData(schemas.AutorenewalResponseSchema, data, {
+      endpoint: 'user/autorenewal',
+      action: 'updateAutorenewal',
+    });
+  },
 
   // История начислений рефералов (с кэшированием на 2 минуты)
   getReferralHistory: async () => {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       'referral_history',
-      () => apiFetch<Array<{
-        id: string;
-        amount: number;
-        currency: string;
-        date: number;
-        referralId: string;
-        status: 'pending' | 'completed' | 'cancelled';
-      }>>('user/referrals/history', { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>('user/referrals/history', { method: 'GET' });
+        return validateData(schemas.ReferralHistoryResponseSchema, data, {
+          endpoint: 'user/referrals/history',
+          action: 'getReferralHistory',
+        });
+      },
       API_TIMEOUTS.GET_REFERRAL_HISTORY
     );
   },
@@ -394,18 +406,13 @@ export const api = {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       'active_contest',
-      () => apiFetch<{
-        ok: boolean;
-        contest: {
-          id: string;
-          title: string;
-          starts_at: string;
-          ends_at: string;
-          attribution_window_days: number;
-          rules_version: string;
-          is_active: boolean;
-        } | null;
-      }>('contest/active', { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>('contest/active', { method: 'GET' });
+        return validateData(schemas.ActiveContestResponseSchema, data, {
+          endpoint: 'contest/active',
+          action: 'getActiveContest',
+        });
+      },
       API_TIMEOUTS.GET_CONTEST_ACTIVE
     );
   },
@@ -414,25 +421,13 @@ export const api = {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       `contest_summary_${contestId}`,
-      () => apiFetch<{
-        ok: boolean;
-        summary: {
-          contest: {
-            id: string;
-            title: string;
-            starts_at: string;
-            ends_at: string;
-            attribution_window_days: number;
-            rules_version: string;
-            is_active: boolean;
-          };
-          ref_link: string;
-          tickets_total: number;
-          invited_total: number;
-          qualified_total: number;
-          pending_total: number;
-        };
-      }>(`referral/summary?contest_id=${contestId}`, { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>(`referral/summary?contest_id=${contestId}`, { method: 'GET' });
+        return validateData(schemas.ContestSummaryResponseSchema, data, {
+          endpoint: `referral/summary?contest_id=${contestId}`,
+          action: 'getContestSummary',
+        });
+      },
       API_TIMEOUTS.GET_CONTEST_SUMMARY
     );
   },
@@ -441,18 +436,13 @@ export const api = {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       `contest_friends_${contestId}_${limit}`,
-      () => apiFetch<{
-        ok: boolean;
-        friends: Array<{
-          id: string;
-          name: string | null;
-          tg_username: string | null;
-          status: 'bound' | 'qualified' | 'blocked' | 'not_qualified';
-          status_reason: string | null;
-          tickets_from_friend_total: number;
-          bound_at: string;
-        }>;
-      }>(`referral/friends?contest_id=${contestId}&limit=${limit}`, { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>(`referral/friends?contest_id=${contestId}&limit=${limit}`, { method: 'GET' });
+        return validateData(schemas.ContestFriendsResponseSchema, data, {
+          endpoint: `referral/friends?contest_id=${contestId}&limit=${limit}`,
+          action: 'getContestFriends',
+        });
+      },
       API_TIMEOUTS.GET_CONTEST_FRIENDS
     );
   },
@@ -461,16 +451,13 @@ export const api = {
     const { cachedFetch } = await import('@/lib/utils/apiCache');
     return cachedFetch(
       `contest_tickets_${contestId}`,
-      () => apiFetch<{
-        ok: boolean;
-        tickets: Array<{
-          id: string;
-          created_at: string;
-          delta: number;
-          label: string;
-          invitee_name: string | null;
-        }>;
-      }>(`referral/tickets?contest_id=${contestId}`, { method: 'GET' }),
+      async () => {
+        const data = await apiFetch<unknown>(`referral/tickets?contest_id=${contestId}`, { method: 'GET' });
+        return validateData(schemas.ContestTicketsResponseSchema, data, {
+          endpoint: `referral/tickets?contest_id=${contestId}`,
+          action: 'getContestTickets',
+        });
+      },
       API_TIMEOUTS.GET_CONTEST_TICKETS
     );
   },
