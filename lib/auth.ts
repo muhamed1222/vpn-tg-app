@@ -1,8 +1,7 @@
 import { api } from './api';
 import { useUserStore } from '../store/user.store';
 import { useSubscriptionStore } from '../store/subscription.store';
-import { getTelegramUser } from './telegram';
-import { getTelegramWebApp } from './telegram';
+import { getTelegramUser, getTelegramWebApp, waitForTelegramInit } from './telegram';
 
 export interface LoginResult {
   success: boolean;
@@ -62,6 +61,19 @@ export const login = async (silent = false): Promise<LoginResult> => {
         firstName: tgUser.first_name,
         username: tgUser.username,
       });
+    }
+
+    // Ожидаем инициализации Telegram WebApp (важно для Android)
+    const isReady = await waitForTelegramInit();
+    if (!isReady) {
+      // Telegram не инициализирован за отведённое время
+      // На Android это может означать, что приложение открыто не через Telegram
+      console.warn('[Auth] Telegram WebApp not initialized after waiting');
+      subStore.setStatus('none');
+      return {
+        success: false,
+        error: 'Telegram WebApp не инициализирован. Пожалуйста, откройте приложение через Telegram.',
+      };
     }
 
     // Авторизация на бэкенде

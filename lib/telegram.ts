@@ -78,6 +78,48 @@ export const getTelegramInitData = () => {
   return webApp?.initData || '';
 };
 
+/**
+ * Ожидает инициализации Telegram WebApp
+ * Полезно для Android устройств, где инициализация может занять больше времени
+ * 
+ * @param maxWaitMs - Максимальное время ожидания в миллисекундах (по умолчанию 3000)
+ * @param intervalMs - Интервал проверки в миллисекундах (по умолчанию 100)
+ * @returns Promise<boolean> - true если initData получен, false если таймаут
+ * 
+ * @example
+ * ```ts
+ * const isReady = await waitForTelegramInit();
+ * if (isReady) {
+ *   // Telegram WebApp готов к работе
+ * }
+ * ```
+ */
+export const waitForTelegramInit = (maxWaitMs = 3000, intervalMs = 100): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Проверяем сразу
+    if (getTelegramInitData()) {
+      resolve(true);
+      return;
+    }
+
+    let elapsed = 0;
+    const interval = setInterval(() => {
+      elapsed += intervalMs;
+      
+      if (getTelegramInitData()) {
+        clearInterval(interval);
+        resolve(true);
+        return;
+      }
+      
+      if (elapsed >= maxWaitMs) {
+        clearInterval(interval);
+        resolve(false);
+      }
+    }, intervalMs);
+  });
+};
+
 import type { TelegramUser } from '@/types/telegram';
 
 /**
