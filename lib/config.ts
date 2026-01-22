@@ -54,7 +54,7 @@ export const config = {
     subscriptionBaseUrl: getClientEnvVar('NEXT_PUBLIC_SUBSCRIPTION_BASE_URL', 'https://vpn.outlivion.space'),
   },
   support: {
-    telegramUrl: getClientEnvVar('NEXT_PUBLIC_SUPPORT_TELEGRAM_URL', 'https://t.me/outlivion_support'),
+    telegramUrl: getClientEnvVar('NEXT_PUBLIC_SUPPORT_TELEGRAM_URL', 'https://t.me/outlivion_supportbot'),
     helpBaseUrl: getClientEnvVar('NEXT_PUBLIC_HELP_BASE_URL', 'https://help.outlivion.space'),
   },
   bot: {
