@@ -4,7 +4,8 @@ import { proxyGet } from '@/lib/utils/api-proxy';
 import { validateApiRequest } from '@/lib/utils/api-validation';
 import { CACHE_CONFIG } from '@/lib/constants';
 
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.ADM || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
+// Server-only secret. Never use NEXT_PUBLIC_* for API keys.
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.ADM || '';
 
 // Отключаем кеширование на уровне Next.js и Vercel
 export const dynamic = 'force-dynamic';

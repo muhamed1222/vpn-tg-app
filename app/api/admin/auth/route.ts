@@ -6,7 +6,8 @@ import {
   isAdminSessionValid 
 } from '@/lib/utils/admin-session';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '';
+// Server-only secret. Never use NEXT_PUBLIC_* for passwords.
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 /**
  * POST /api/admin/auth

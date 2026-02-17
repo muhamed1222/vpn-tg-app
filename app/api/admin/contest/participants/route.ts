@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import { proxyGet } from '@/lib/utils/api-proxy';
 import { validateApiRequest } from '@/lib/utils/api-validation';
 
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.ADM || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
+// Server-only secret. Never use NEXT_PUBLIC_* for API keys.
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.ADM || '';
 
 /**
  * API Route для получения списка участников конкурса (админский endpoint)
@@ -15,7 +16,6 @@ export async function GET(request: NextRequest) {
       hasAdminApiKey: !!ADMIN_API_KEY,
       hasADM: !!process.env.ADM,
       hasADMIN_API_KEY: !!process.env.ADMIN_API_KEY,
-      hasNEXT_PUBLIC_ADMIN_API_KEY: !!process.env.NEXT_PUBLIC_ADMIN_API_KEY,
       nodeEnv: process.env.NODE_ENV,
       vercelEnv: process.env.VERCEL_ENV,
       adminApiKeyLength: ADMIN_API_KEY ? ADMIN_API_KEY.length : 0,
