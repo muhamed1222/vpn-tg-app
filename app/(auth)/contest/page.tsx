@@ -266,13 +266,13 @@ export default function ContestPage() {
       const webApp = getTelegramWebApp();
 
       if (webApp && webApp.openTelegramLink) {
-        const shareText = `🎁 Розыгрыш vpn-web!\n\nИспользуй мою реферальную ссылку и получи больше билетов для участия!`;
+        const shareText = `🎁 Розыгрыш Outlivion VPN!\n\nИспользуй мою реферальную ссылку и получи больше билетов для участия!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(summary.ref_link || '')}&text=${encodeURIComponent(shareText)}`;
         webApp.openTelegramLink(shareUrl);
       } else if (navigator.share) {
         await navigator.share({
-          title: 'Розыгрыш vpn-web',
-          text: `Присоединяйся к розыгрышу vpn-web! Используй мою реферальную ссылку: ${summary.ref_link}`,
+          title: 'Розыгрыш Outlivion VPN',
+          text: `Присоединяйся к розыгрышу Outlivion VPN! Используй мою реферальную ссылку: ${summary.ref_link}`,
           url: summary.ref_link || '',
         });
       } else {

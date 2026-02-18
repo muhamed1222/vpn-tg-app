@@ -1,4 +1,4 @@
-# 🌐 vpn-web Mini App
+# 🌐 Outlivion VPN Mini App
 
 Telegram Mini App для управления VPN-подписками. Приложение построено на Next.js 16 с использованием React 19 и TypeScript.
 
@@ -24,7 +24,7 @@ Telegram Mini App для управления VPN-подписками. Прил
 ```bash
 # Клонировать репозиторий
 git clone <repository-url>
-cd vpn-tg-app
+cd VPN Website
 
 # Установить зависимости
 npm install
@@ -54,7 +54,7 @@ npm run dev
 
 ```bash
 git clone <repository-url>
-cd vpn-tg-app
+cd VPN Website
 ```
 
 ### 2. Установка зависимостей
@@ -294,7 +294,7 @@ npm start
 **→ [`Outlivion baza/docs/`](../docs/README.md)**
 - [`03-flows/purchase-and-key-issue.md`](../docs/03-flows/purchase-and-key-issue.md) - Mini App purchase flow
 - [`04-apis/vpn-tg-app.md`](../docs/04-apis/vpn-tg-app.md) - API usage guide (TODO)
-- [`04-apis/vpn-core.md`](../docs/04-apis/vpn-core.md) - vpn-core endpoints (TODO)
+- [`04-apis/vpn-core.md`](../docs/04-apis/vpn-core.md) - VPN API endpoints (TODO)
 
 ### 📁 Локальная документация:
 Полная документация API доступна в файле [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) (TODO: создать).

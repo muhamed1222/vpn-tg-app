@@ -83,7 +83,7 @@ export default function Home() {
     <main
       className="relative min-h-[var(--tg-viewport-height,100vh)] overflow-hidden font-sans select-none flex flex-col items-center bg-main-gradient safe-area-padding justify-start"
       role="main"
-      aria-label="Главная страница vpn-web"
+      aria-label="Главная страница Outlivion VPN"
     >
       <Suspense fallback={null}>
         <AnimatedBackground />
