@@ -28,18 +28,18 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Outlivion VPN - Безопасный и быстрый VPN",
+  title: "vpn-web - Безопасный и быстрый VPN",
   description: "Безопасный и быстрый VPN сервис для защиты вашей приватности в интернете. Поддержка до 5 устройств одновременно.",
   keywords: ["VPN", "безопасность", "приватность", "интернет", "защита данных"],
   openGraph: {
-    title: "Outlivion VPN - Безопасный и быстрый VPN",
+    title: "vpn-web - Безопасный и быстрый VPN",
     description: "Безопасный и быстрый VPN сервис для защиты вашей приватности",
     type: "website",
     locale: "ru_RU",
   },
   twitter: {
     card: "summary",
-    title: "Outlivion VPN",
+    title: "vpn-web",
     description: "Безопасный и быстрый VPN сервис",
   },
   robots: {

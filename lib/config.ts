@@ -63,7 +63,7 @@ export const config = {
   deepLink: {
     defaultProtocol: 'happ://add/',
     iosProtocol: 'v2raytun://import/',
-    vpnName: 'OutlivionVPN',
+    vpnName: 'vpn-web',
   },
 } as const;
 

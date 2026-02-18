@@ -1,4 +1,4 @@
-# 🌐 Outlivion VPN Mini App
+# 🌐 vpn-web Mini App
 
 Telegram Mini App для управления VPN-подписками. Приложение построено на Next.js 16 с использованием React 19 и TypeScript.
 
@@ -24,7 +24,7 @@ Telegram Mini App для управления VPN-подписками. Прил
 ```bash
 # Клонировать репозиторий
 git clone <repository-url>
-cd vpnwebsite
+cd vpn-tg-app
 
 # Установить зависимости
 npm install
@@ -54,7 +54,7 @@ npm run dev
 
 ```bash
 git clone <repository-url>
-cd vpnwebsite
+cd vpn-tg-app
 ```
 
 ### 2. Установка зависимостей
@@ -159,7 +159,7 @@ npm run test:coverage
 ### Структура кода
 
 ```
-vpnwebsite/
+vpn-tg-app/
 ├── app/                    # Next.js App Router
 │   ├── (auth)/            # Защищенные страницы
 │   ├── api/               # API routes
@@ -293,8 +293,8 @@ npm start
 ### 🏠 Центральная документация:
 **→ [`Outlivion baza/docs/`](../docs/README.md)**
 - [`03-flows/purchase-and-key-issue.md`](../docs/03-flows/purchase-and-key-issue.md) - Mini App purchase flow
-- [`04-apis/vpnwebsite.md`](../docs/04-apis/vpnwebsite.md) - API usage guide (TODO)
-- [`04-apis/vpn_api.md`](../docs/04-apis/vpn_api.md) - vpn_api endpoints (TODO)
+- [`04-apis/vpn-tg-app.md`](../docs/04-apis/vpn-tg-app.md) - API usage guide (TODO)
+- [`04-apis/vpn-core.md`](../docs/04-apis/vpn-core.md) - vpn-core endpoints (TODO)
 
 ### 📁 Локальная документация:
 Полная документация API доступна в файле [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) (TODO: создать).
@@ -314,7 +314,7 @@ npm start
 ## 📁 Структура проекта
 
 ```
-vpnwebsite/
+vpn-tg-app/
 ├── app/                          # Next.js App Router
 │   ├── (auth)/                  # Защищенные страницы
 │   │   ├── page.tsx            # Главная страница

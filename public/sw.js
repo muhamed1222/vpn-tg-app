@@ -231,7 +231,7 @@ async function networkFirstWithOfflineFallback(request) {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Офлайн - Outlivion VPN</title>
+          <title>Офлайн - vpn-web</title>
           <style>
             body {
               font-family: system-ui, -apple-system, sans-serif;
