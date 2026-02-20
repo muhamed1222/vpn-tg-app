@@ -43,7 +43,7 @@ export default function ContestPage() {
       console.log('[Contest] Waiting for Telegram init...');
       const isReady = await waitForTelegramInit();
       console.log('[Contest] Telegram ready:', isReady);
-      
+
       // Получаем Telegram initData для авторизации
       const initData = isReady ? getTelegramInitData() : '';
       console.log('[Contest] initData length:', initData?.length || 0);
@@ -160,7 +160,7 @@ export default function ContestPage() {
     } catch (err) {
       // Используем централизованный обработчик ошибок
       const errorMessage = handleComponentError(err, 'contest', 'loadContestData');
-      
+
       // FALLBACK FOR LOCAL DEVELOPMENT ONLY
       // Если произошла ошибка (например, 404 на API в dev environment), подставляем mock данные
       if (process.env.NODE_ENV === 'development') {
@@ -355,38 +355,12 @@ export default function ContestPage() {
       <Suspense fallback={<div className="h-56 bg-white/5 rounded-2xl animate-pulse mb-6 relative z-10" />}>
         <ContestSummaryCard
           summary={summary}
-        />
-      </Suspense>
-
-      <div className="mb-6 relative z-10">
-        <button
-          onClick={handleShare}
-          className="w-full bg-gradient-to-r from-[#F55128] to-[#FF6B3D] hover:from-[#d43d1f] hover:to-[#e55a2d] active:scale-[0.98] transition-all duration-200 rounded-[10px] py-2 px-4 text-white font-medium text-base shadow-xl flex items-center justify-center gap-3 border border-white/20"
-        >
-          <span className="text-2xl">🎁</span>
-          <span>Пригласить друзей</span>
-        </button>
-      </div>
-
-      <Suspense fallback={<div className="h-64 bg-white/5 rounded-2xl animate-pulse mb-6 relative z-10" />}>
-        <FriendsList friends={friends} />
-      </Suspense>
-
-      <Suspense fallback={<div className="h-64 bg-white/5 rounded-2xl animate-pulse mb-6 relative z-10" />}>
-        <TicketsHistory tickets={tickets} />
-      </Suspense>
-
-      <div className="mb-6 relative z-10">
-        <button
-          onClick={() => {
+          onRulesClick={() => {
             triggerHaptic('light');
             setIsRulesOpen(true);
           }}
-          className="w-full bg-transparent border border-white/10 hover:bg-white/5 active:scale-[0.98] transition-all rounded-[10px] py-3 px-4 text-white/80 font-medium"
-        >
-          Правила конкурса
-        </button>
-      </div>
+        />
+      </Suspense>
 
       <Suspense fallback={null}>
         <ContestRulesModal
