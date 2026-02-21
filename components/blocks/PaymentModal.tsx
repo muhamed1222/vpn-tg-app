@@ -39,6 +39,35 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
 
   const autorenewalEnabled = autorenewalData?.enabled ?? false;
 
+  // --- MOCK DEFINITIONS FOR DEMONSTRATION ---
+  const [hasCardMock, setHasCardMock] = useState(true);
+  const [autorenewalEnabledMock, setAutorenewalEnabledMock] = useState(true);
+  const [isUpdatingMock, setIsUpdatingMock] = useState(false);
+
+  const handleToggleAutorenewalMock = () => {
+    setIsUpdatingMock(true);
+    setTimeout(() => {
+      setAutorenewalEnabledMock(!autorenewalEnabledMock);
+      showAlert(
+        !autorenewalEnabledMock
+          ? 'Автопродление включено'
+          : 'Автопродление отключено'
+      );
+      setIsUpdatingMock(false);
+    }, 600);
+  };
+
+  const handleDeleteCardMock = () => {
+    setIsUpdatingMock(true);
+    setTimeout(() => {
+      setHasCardMock(false);
+      setAutorenewalEnabledMock(false);
+      showAlert('Карта успешно отвязана');
+      setIsUpdatingMock(false);
+    }, 600);
+  };
+  // ------------------------------------------
+
   const handleToggleAutorenewal = async () => {
     const newValue = !autorenewalEnabled;
     setIsUpdating(true);
@@ -46,8 +75,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
     try {
       await api.updateAutorenewal(newValue);
       showAlert(
-        newValue 
-          ? 'Автопродление включено' 
+        newValue
+          ? 'Автопродление включено'
           : 'Автопродление отключено'
       );
       // Перезагружаем данные
@@ -68,7 +97,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Оплата">
       <div className="flex flex-col h-full min-h-0">
         {/* 1. Карточка статуса подписки */}
-        <div 
+        <div
           className="bg-white/5 rounded-[16px] p-6 flex items-center gap-4 border border-white/5 mb-6 css-dialog_content-item"
           style={{ '--index': 1 } as React.CSSProperties}
         >
@@ -90,21 +119,46 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* 2. Карточка способов оплаты */}
-        <div 
-          className="bg-white/5 rounded-[16px] p-10 flex flex-col items-center justify-center border border-white/5 mb-6 text-center css-dialog_content-item"
-          style={{ '--index': 2 } as React.CSSProperties}
-        >
-          <div className="bg-white/5 p-4 rounded-xl mb-4 border border-white/5">
-            <CreditCard className="w-8 h-8 text-white/60" />
+        {hasCardMock ? (
+          <div
+            className="bg-white/5 rounded-[16px] p-6 flex flex-col items-center justify-center border border-white/5 mb-6 text-center css-dialog_content-item"
+            style={{ '--index': 2 } as React.CSSProperties}
+          >
+            <div className="flex items-center gap-4 w-full">
+              <div className="bg-white/10 p-3 rounded-xl border border-white/10">
+                <CreditCard className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex flex-col flex-1 text-left">
+                <span className="text-white text-base font-medium">Банковская карта</span>
+                <span className="text-white/40 text-sm">•••• 4242</span>
+              </div>
+              <button
+                onClick={handleDeleteCardMock}
+                disabled={isUpdatingMock}
+                className="text-[#F55128] text-sm font-medium px-3 py-1.5 bg-[#F55128]/10 hover:bg-[#F55128]/20 rounded-lg transition-colors"
+                aria-label="Удалить карту"
+              >
+                Отвязать
+              </button>
+            </div>
           </div>
-          <p className="text-white/80 text-lg font-medium leading-relaxed max-w-[280px]">
-            Способы оплаты сохраняются автоматически при первой покупке
-          </p>
-        </div>
+        ) : (
+          <div
+            className="bg-white/5 rounded-[16px] p-10 flex flex-col items-center justify-center border border-white/5 mb-6 text-center css-dialog_content-item"
+            style={{ '--index': 2 } as React.CSSProperties}
+          >
+            <div className="bg-white/5 p-4 rounded-xl mb-4 border border-white/5">
+              <CreditCard className="w-8 h-8 text-white/60" />
+            </div>
+            <p className="text-white/80 text-lg font-medium leading-relaxed max-w-[280px]">
+              Способы оплаты сохраняются автоматически при первой покупке
+            </p>
+          </div>
+        )}
 
         {/* 3. Переключатель автопродления */}
-        <div 
-          className="bg-white/5 rounded-[16px] p-5 border border-white/5 mb-4 css-dialog_content-item"
+        <div
+          className={`bg-white/5 rounded-[16px] p-5 border border-white/5 mb-4 css-dialog_content-item ${!hasCardMock ? 'opacity-50 pointer-events-none' : ''}`}
           style={{ '--index': 3 } as React.CSSProperties}
         >
           <div className="flex items-center justify-between">
@@ -113,31 +167,29 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
                 Автопродление подписки
               </h3>
               <p className="text-white/60 text-sm">
-                {autorenewalEnabled 
-                  ? 'Подписка будет продлеваться автоматически' 
+                {autorenewalEnabledMock
+                  ? 'Подписка будет продлеваться автоматически'
                   : 'Подписка не будет продлеваться автоматически'}
               </p>
             </div>
-            {isLoading ? (
+            {isUpdatingMock ? (
               <Loader2 className="w-6 h-6 animate-spin text-white/40" />
             ) : (
               <button
-                onClick={handleToggleAutorenewal}
-                disabled={isUpdating}
-                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#F55128]/50 focus:ring-offset-2 focus:ring-offset-[#121212] disabled:opacity-50 disabled:cursor-not-allowed ${
-                  autorenewalEnabled ? 'bg-[#F55128]' : 'bg-white/20'
-                }`}
-                aria-label={autorenewalEnabled ? 'Отключить автопродление' : 'Включить автопродление'}
+                onClick={handleToggleAutorenewalMock}
+                disabled={isUpdatingMock || !hasCardMock}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#F55128]/50 focus:ring-offset-2 focus:ring-offset-[#121212] disabled:opacity-50 disabled:cursor-not-allowed ${autorenewalEnabledMock ? 'bg-[#F55128]' : 'bg-white/20'
+                  }`}
+                aria-label={autorenewalEnabledMock ? 'Отключить автопродление' : 'Включить автопродление'}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                    autorenewalEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${autorenewalEnabledMock ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
             )}
           </div>
-          {isUpdating && (
+          {isUpdatingMock && (
             <div className="mt-3 flex items-center gap-2 text-white/60 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Обновление...</span>
@@ -145,7 +197,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
           )}
         </div>
 
-        <p 
+        <p
           className="text-white/40 text-sm text-center px-4 css-dialog_content-item"
           style={{ '--index': 4 } as React.CSSProperties}
         >
