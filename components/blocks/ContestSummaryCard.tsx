@@ -33,7 +33,7 @@ export default function ContestSummaryCard({
         </h1>
 
         <p className="text-white/70 text-[14px] leading-relaxed mb-4">
-          Разыгрываем 100 крутых призов: iPhone 17, iPhone 16, Apple Watch Series 10, AirPods 4 и другие призы.
+          Разыгрываем 10 крутых призов: iPhone 17 Pro, Galaxy Watch Ultra, AirPods 4, Яндекс Станции и другие призы.
         </p>
 
         <p className="text-white/70 text-[14px] leading-relaxed mb-5">
@@ -74,16 +74,16 @@ export default function ContestSummaryCard({
         <div className="flex flex-col gap-2">
           {(() => {
             const winners = [
-              { place: 1, id: '1972786546', prize: 'iPhone 17' },
-              { place: 2, id: '1140209535', prize: 'iPhone 16' },
-              { place: 3, id: '5855099175', prize: 'Apple Watch' },
-              { place: 4, id: '978855516', prize: 'AirPods 4' },
-              { place: 5, id: '1140209535', prize: 'Умная колонка' },
+              { place: 1, id: '1972786546', prize: 'iPhone 17 Pro' },
+              { place: 2, id: '1140209535', prize: 'Galaxy Watch Ultra' },
+              { place: 3, id: '5855099175', prize: 'AirPods 4' },
+              { place: 4, id: '978855516', prize: 'Яндекс станция Миди' },
+              { place: 5, id: '1140209535', prize: 'Яндекс станция Стрит' },
               { place: 6, id: '8356242348', prize: 'Premium (1 год)' },
-              { place: 7, id: '7350769107', prize: 'Premium (6 мес)' },
-              { place: 8, id: '1841173436', prize: 'Premium (3 мес)' },
-              { place: 9, id: '6472091918', prize: 'Premium (1 мес)' },
-              { place: 10, id: '667279246', prize: 'Premium (1 мес)' },
+              { place: 7, id: '7350769107', prize: 'Premium (1 год)' },
+              { place: 8, id: '1841173436', prize: 'Premium (1 год)' },
+              { place: 9, id: '6472091918', prize: 'Premium (1 год)' },
+              { place: 10, id: '667279246', prize: 'Premium (1 год)' },
             ];
 
             return winners.map((winner) => (
