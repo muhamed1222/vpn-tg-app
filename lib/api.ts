@@ -337,13 +337,13 @@ export const api = {
   },
 
   // Создание заказа
-  createOrder: (planId: string, paymentMethod?: string) => apiFetch<{
+  createOrder: (planId: string, paymentMethod?: string, autoRenew: boolean = true) => apiFetch<{
     orderId: string;
     status: 'pending';
     paymentUrl: string;
   }>('orders/create', {
     method: 'POST',
-    body: JSON.stringify({ planId, paymentMethod })
+    body: JSON.stringify({ planId, paymentMethod, autoRenew })
   }),
 
   // Проверка статуса оплаты и активация подписки

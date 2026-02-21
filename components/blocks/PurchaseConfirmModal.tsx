@@ -28,14 +28,14 @@ interface PurchaseConfirmModalProps {
  * Отображает детали заказа и позволяет выбрать способ оплаты перед переходом на платежный шлюз.
  * Переведен на использование универсального BottomSheet.
  */
-export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({ 
-  isOpen, 
+export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
+  isOpen,
   onClose,
   planId,
   price,
   duration,
   devices,
-  untilDate 
+  untilDate
 }) => {
   const router = useRouter();
   const showAlert = useTelegramAlert();
@@ -47,7 +47,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
-  
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pollAttemptsRef = useRef(0);
 
@@ -66,24 +66,24 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
   const startPolling = () => {
     stopPolling();
     pollAttemptsRef.current = 0;
-    
+
     pollIntervalRef.current = setInterval(async () => {
       pollAttemptsRef.current += 1;
-      
+
       try {
         // Сначала пробуем проверить статус оплаты через API
         if (orderId) {
           try {
             const paymentResult = await api.checkPaymentSuccess(orderId);
-            
+
             if (paymentResult.status === 'completed') {
               // Оплата прошла и подписка активирована
               setIsPaid(true);
               stopPolling();
-              
+
               // Обновляем данные пользователя
               await login(true);
-              
+
               // Через DELAYS.POLLING_RESET секунд закрываем все и уходим на главную
               setTimeout(() => {
                 setIsWaitingOpen(false);
@@ -102,18 +102,18 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
             });
           }
         }
-        
+
         // Fallback: проверяем через login (старый способ)
         const result = await login(true); // Тихий логин для проверки статуса
         if (result.success) {
           // Проверяем статус через стор (login уже обновил его)
           const { useSubscriptionStore } = await import('@/store/subscription.store');
           const sub = useSubscriptionStore.getState().subscription;
-          
+
           if (sub?.status === 'active') {
             setIsPaid(true);
             stopPolling();
-            
+
             // Через DELAYS.POLLING_RESET секунд закрываем все и уходим на главную
             setTimeout(() => {
               setIsWaitingOpen(false);
@@ -144,7 +144,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
       try {
         const payments = await api.getPaymentsHistory();
         const hasPaidOrders = payments.some(p => p.status === 'success');
-        
+
         if (hasPaidOrders) {
           setIsProcessing(false);
           showAlert('Пробная подписка доступна только один раз. Выберите другой тариф.');
@@ -162,19 +162,19 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
     }
 
     setIsProcessing(true);
-    
+
     try {
       // 1. Создаем реальный заказ через API с выбранным способом оплаты
-      const response = await api.createOrder(planId, selectedMethodId);
-      
+      const response = await api.createOrder(planId, selectedMethodId, true);
+
       if (response && response.paymentUrl) {
         setPaymentUrl(response.paymentUrl);
         setOrderId(response.orderId); // Сохраняем orderId для проверки оплаты
         setIsWaitingOpen(true);
-        
+
         // 2. Начинаем поллинг статуса в фоне
         startPolling();
-        
+
         // 3. Делаем небольшую задержку для плавности и редиректим
         setTimeout(() => {
           handleRedirect(response.paymentUrl);
@@ -191,10 +191,10 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
       });
       // Преобразуем техническое сообщение в понятное для пользователя
       const { getUserFriendlyMessage } = await import('@/lib/utils/user-messages');
-      const message = error instanceof Error 
+      const message = error instanceof Error
         ? getUserFriendlyMessage(error.message)
         : 'Произошла ошибка при создании платежа. Попробуйте позже.';
-      
+
       showAlert(message);
       setIsProcessing(false);
     }
@@ -223,7 +223,7 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
       <BottomSheet isOpen={isOpen} onClose={onClose} title="Подтверждение">
         <div className="flex flex-col pb-4">
           {/* Детали заказа */}
-          <div 
+          <div
             className="bg-white/[0.03] rounded-[16px] px-[14px] py-[14px] border border-white/5 mb-4 space-y-4 css-dialog_content-item"
             style={{ '--index': 1 } as React.CSSProperties}
           >
@@ -251,11 +251,11 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
           </div>
 
           {/* Кнопка выбора способа оплаты */}
-          <div 
+          <div
             className="css-dialog_content-item mb-3"
             style={{ '--index': 2 } as React.CSSProperties}
           >
-            <button 
+            <button
               onClick={() => setIsMethodsOpen(true)}
               disabled={isProcessing}
               className="w-full bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all border border-white/10 rounded-[10px] py-[14px] px-[14px] flex items-center justify-between text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -269,11 +269,11 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
           </div>
 
           {/* Кнопка оплаты */}
-          <div 
+          <div
             className="css-dialog_content-item"
             style={{ '--index': 3 } as React.CSSProperties}
           >
-            <button 
+            <button
               onClick={handlePayClick}
               disabled={isProcessing}
               className="w-full bg-[#F55128] hover:bg-[#d43d1f] active:scale-[0.98] transition-all rounded-[10px] py-[14px] text-base font-bold text-white shadow-lg shadow-[#F55128]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -291,14 +291,14 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
         </div>
       </BottomSheet>
 
-      <PaymentMethodsModal 
+      <PaymentMethodsModal
         isOpen={isMethodsOpen}
         onClose={() => setIsMethodsOpen(false)}
         selectedMethod={selectedMethodId}
         onSelect={setSelectedMethodId}
       />
 
-      <WaitingPaymentModal 
+      <WaitingPaymentModal
         isOpen={isWaitingOpen}
         onClose={() => setIsWaitingOpen(false)}
         onRedirect={handleRedirect}
